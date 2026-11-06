@@ -6,17 +6,17 @@ import { totalForDate, waterTargetMl } from './waterEntryRepository';
 import { listWeightEntries } from './weightEntryRepository';
 import { hasSessionForDate } from './workoutSessionRepository';
 import { listTemplates } from './workoutTemplateRepository';
+import { getLocalDateString } from '../../platform/localDate';
 
 const PROTEIN_HIT_TOLERANCE = 0.1; // within 10% of target (PRD §2 success metric)
 
-function toLocalDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
+/** Shifts an already-known-correct "YYYY-MM-DD" string by N days. UTC-midnight-anchored
+ * arithmetic is the right tool here (unlike computing "today", see platform/localDate.ts) — it
+ * round-trips any calendar date correctly regardless of the runtime's own timezone. */
 function daysBefore(localDate: string, n: number): string {
   const d = new Date(`${localDate}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - n);
-  return toLocalDate(d);
+  return d.toISOString().slice(0, 10);
 }
 
 /** Sums a day's `food_entry` rows into calories/protein, resolving each catalog/custom food
@@ -53,7 +53,7 @@ export type TodaySummary = {
 };
 
 export function getTodaySummary(): TodaySummary {
-  const today = toLocalDate(new Date());
+  const today = getLocalDateString();
   const trainedToday = hasSessionForDate(today);
 
   const targets = latestTargets();

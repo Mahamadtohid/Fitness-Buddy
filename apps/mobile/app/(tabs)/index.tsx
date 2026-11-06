@@ -8,10 +8,7 @@ import { logWater } from '../../src/data/repositories/waterEntryRepository';
 import { logWeight } from '../../src/data/repositories/weightEntryRepository';
 import { getSchedule } from '../../src/data/repositories/scheduleRepository';
 import { retryNow, useSyncStatusStore } from '../../src/data/sync';
-
-function todayLocalDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { getLocalDateString } from '../../src/platform/localDate';
 
 /** Matches `Date.prototype.getDay()` convention used by scheduleRepository/train.tsx. */
 function weekdayOf(localDate: string): number {
@@ -45,7 +42,7 @@ export default function TodayScreen() {
   const refresh = useCallback(() => setSummary(getTodaySummary()), []);
   useFocusEffect(refresh);
 
-  const today = todayLocalDate();
+  const today = getLocalDateString();
   const weekday = weekdayOf(today);
   const scheduledTemplateId = getSchedule().find((s) => s.weekday === weekday && !s.deletedAt)?.templateId ?? null;
 

@@ -8,6 +8,7 @@ import { resolvedNutritionFor, searchFoods } from '../../src/data/repositories/f
 import { create as createSavedMeal, list as listSavedMeals } from '../../src/data/repositories/savedMealRepository';
 import type { FoodEntryRow, FoodRow, SavedMealRow } from '../../src/data/db/schema';
 import type { MealSlot } from '../../src/data/repositories/foodEntryLogic';
+import { getLocalDateString } from '../../src/platform/localDate';
 
 const SLOTS: { slot: MealSlot; label: string }[] = [
   { slot: 'breakfast', label: 'Breakfast' },
@@ -15,10 +16,6 @@ const SLOTS: { slot: MealSlot; label: string }[] = [
   { slot: 'snacks', label: 'Snacks' },
   { slot: 'dinner', label: 'Dinner' },
 ];
-
-function todayLocalDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 type AddSheet = { slot: MealSlot; mode: 'menu' | 'search' | 'quickAdd' | 'savedMeal' } | null;
 type BuilderItem = { foodId: string; name: string; servings: string };
@@ -29,7 +26,7 @@ type BuilderItem = { foodId: string; name: string; servings: string };
  */
 export default function FoodScreen() {
   const { colors } = useTheme();
-  const today = todayLocalDate();
+  const today = getLocalDateString();
 
   const [allFoods] = useState<FoodRow[]>(() => searchFoods(''));
   const foodNameById = useCallback((id: string) => allFoods.find((f) => f.id === id)?.name ?? 'Food', [allFoods]);

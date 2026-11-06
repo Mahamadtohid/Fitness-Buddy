@@ -9,6 +9,7 @@ import { calculateAgeFromBirthDate, calculateRestDayTarget, calculateTrainingDay
 import { calculateMacroTargets } from '../../src/domain/macros';
 import { useAuthStore } from '../../src/features/account/useAuthStore';
 import type { ProfileRow, TargetRow } from '../../src/data/db/schema';
+import { getLocalDateString } from '../../src/platform/localDate';
 
 type Goal = 'lose' | 'maintain' | 'gain';
 
@@ -17,10 +18,6 @@ const GOALS: { goal: Goal; label: string }[] = [
   { goal: 'maintain', label: 'Maintain' },
   { goal: 'gain', label: 'Gain' },
 ];
-
-function todayLocalDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 /**
  * Settings (PRD §3.2 target override, §3.8 account) — profile summary, goal/rate editing with
@@ -79,7 +76,7 @@ export default function SettingsScreen() {
 
     createTargets(
       {
-        effectiveFrom: todayLocalDate(),
+        effectiveFrom: getLocalDateString(),
         kcalRest,
         kcalTraining,
         proteinG: Math.round(proteinG),
@@ -104,7 +101,7 @@ export default function SettingsScreen() {
 
     createTargets(
       {
-        effectiveFrom: todayLocalDate(),
+        effectiveFrom: getLocalDateString(),
         kcalRest,
         kcalTraining: kcalRest + 300,
         proteinG,

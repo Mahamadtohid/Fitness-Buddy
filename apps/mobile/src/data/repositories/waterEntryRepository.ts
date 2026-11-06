@@ -7,19 +7,16 @@ import { generateId } from '../../platform/uuid';
 import { buildLogWaterChange } from './waterEntryLogic';
 import { listWeightEntries } from './weightEntryRepository';
 import { hasSessionForDate } from './workoutSessionRepository';
+import { getLocalDateString } from '../../platform/localDate';
 
 const ML_PER_KG = 35;
 const TRAINING_DAY_BUMP_ML = 500;
-
-function todayLocalDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function logWater(ml: number): void {
   const db = getDb();
   const now = new Date().toISOString();
   const { entry, outboxRow } = buildLogWaterChange({
-    localDate: todayLocalDate(),
+    localDate: getLocalDateString(),
     ml,
     now,
     newId: generateId(),
@@ -50,5 +47,5 @@ export function waterTargetMl(): number {
   const latest = listWeightEntries()[0];
   if (!latest) return 0;
   const base = ML_PER_KG * latest.weightKg;
-  return base + (hasSessionForDate(todayLocalDate()) ? TRAINING_DAY_BUMP_ML : 0);
+  return base + (hasSessionForDate(getLocalDateString()) ? TRAINING_DAY_BUMP_ML : 0);
 }
