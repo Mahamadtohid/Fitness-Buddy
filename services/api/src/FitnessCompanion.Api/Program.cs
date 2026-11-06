@@ -79,6 +79,7 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailSender, LoggingEmailSender>();
+builder.Services.AddScoped<IServerSequence, PostgresServerSequence>();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
