@@ -1,7 +1,14 @@
 import type {
   ExerciseRow,
+  FoodEntryRow,
+  FoodOverrideRow,
+  FoodRow,
+  ProfileRow,
+  SavedMealRow,
   ScheduleEntryRow,
   SetEntryRow,
+  TargetRow,
+  WaterEntryRow,
   WeightEntryRow,
   WorkoutSessionRow,
   WorkoutTemplateRow,
@@ -279,6 +286,321 @@ export function decideSetEntryPullApply(params: {
         rpe: p.rpe,
         isWarmup: p.isWarmup ? 1 : 0,
         completed: p.completed ? 1 : 0,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type ProfilePayload = {
+  sex: string;
+  birthDate: string;
+  heightCm: number;
+  lifestyleFactor: number;
+  goal: string;
+  rateKgPerWeek: number;
+  units: string;
+  timeZone: string;
+  clientUpdatedAt: string;
+};
+
+export function decideProfilePullApply(params: {
+  item: PulledItem;
+  existing: ProfileRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<ProfileRow> {
+  return decideGenericPullApply<ProfileRow, ProfilePayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        sex: existing?.sex ?? '',
+        birthDate: existing?.birthDate ?? '',
+        heightCm: existing?.heightCm ?? 0,
+        lifestyleFactor: existing?.lifestyleFactor ?? 1.2,
+        goal: existing?.goal ?? 'maintain',
+        rateKgPerWeek: existing?.rateKgPerWeek ?? 0,
+        units: existing?.units ?? 'metric',
+        timeZone: existing?.timeZone ?? 'UTC',
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        sex: p.sex,
+        birthDate: p.birthDate,
+        heightCm: p.heightCm,
+        lifestyleFactor: p.lifestyleFactor,
+        goal: p.goal,
+        rateKgPerWeek: p.rateKgPerWeek,
+        units: p.units,
+        timeZone: p.timeZone,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type TargetPayload = {
+  effectiveFrom: string;
+  kcalRest: number;
+  kcalTraining: number;
+  proteinG: number;
+  fatG: number;
+  carbG: number;
+  waterMl: number;
+  source: string;
+  clientUpdatedAt: string;
+};
+
+export function decideTargetsPullApply(params: {
+  item: PulledItem;
+  existing: TargetRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<TargetRow> {
+  return decideGenericPullApply<TargetRow, TargetPayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        effectiveFrom: existing?.effectiveFrom ?? now.slice(0, 10),
+        kcalRest: existing?.kcalRest ?? 0,
+        kcalTraining: existing?.kcalTraining ?? 0,
+        proteinG: existing?.proteinG ?? 0,
+        fatG: existing?.fatG ?? 0,
+        carbG: existing?.carbG ?? 0,
+        waterMl: existing?.waterMl ?? 0,
+        source: existing?.source ?? 'auto',
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        effectiveFrom: p.effectiveFrom,
+        kcalRest: p.kcalRest,
+        kcalTraining: p.kcalTraining,
+        proteinG: p.proteinG,
+        fatG: p.fatG,
+        carbG: p.carbG,
+        waterMl: p.waterMl,
+        source: p.source,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type CustomFoodPayload = {
+  name: string;
+  servingUnit: string;
+  servingG: number;
+  kcal: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  clientUpdatedAt: string;
+};
+
+export function decideCustomFoodPullApply(params: {
+  item: PulledItem;
+  existing: FoodRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<FoodRow> {
+  return decideGenericPullApply<FoodRow, CustomFoodPayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        name: existing?.name ?? '',
+        servingUnit: existing?.servingUnit ?? '',
+        servingG: existing?.servingG ?? 0,
+        kcal: existing?.kcal ?? 0,
+        proteinG: existing?.proteinG ?? 0,
+        carbG: existing?.carbG ?? 0,
+        fatG: existing?.fatG ?? 0,
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        name: p.name,
+        servingUnit: p.servingUnit,
+        servingG: p.servingG,
+        kcal: p.kcal,
+        proteinG: p.proteinG,
+        carbG: p.carbG,
+        fatG: p.fatG,
+        isCustom: 1,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type FoodOverridePayload = {
+  foodId: string;
+  kcal: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  clientUpdatedAt: string;
+};
+
+export function decideFoodOverridePullApply(params: {
+  item: PulledItem;
+  existing: FoodOverrideRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<FoodOverrideRow> {
+  return decideGenericPullApply<FoodOverrideRow, FoodOverridePayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        foodId: existing?.foodId ?? '',
+        kcal: existing?.kcal ?? 0,
+        proteinG: existing?.proteinG ?? 0,
+        carbG: existing?.carbG ?? 0,
+        fatG: existing?.fatG ?? 0,
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        foodId: p.foodId,
+        kcal: p.kcal,
+        proteinG: p.proteinG,
+        carbG: p.carbG,
+        fatG: p.fatG,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type SavedMealPayload = { name: string; itemsJson: string; clientUpdatedAt: string };
+
+export function decideSavedMealPullApply(params: {
+  item: PulledItem;
+  existing: SavedMealRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<SavedMealRow> {
+  return decideGenericPullApply<SavedMealRow, SavedMealPayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        name: existing?.name ?? '',
+        itemsJson: existing?.itemsJson ?? '[]',
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        name: p.name,
+        itemsJson: p.itemsJson,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type FoodEntryPayload = {
+  localDate: string;
+  mealSlot: string;
+  foodId: string | null;
+  quickAddName: string | null;
+  quickAddKcal: number | null;
+  quickAddProteinG: number | null;
+  servings: number;
+  clientUpdatedAt: string;
+};
+
+export function decideFoodEntryPullApply(params: {
+  item: PulledItem;
+  existing: FoodEntryRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<FoodEntryRow> {
+  return decideGenericPullApply<FoodEntryRow, FoodEntryPayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        localDate: existing?.localDate ?? '',
+        mealSlot: existing?.mealSlot ?? 'breakfast',
+        foodId: existing?.foodId ?? null,
+        quickAddName: existing?.quickAddName ?? null,
+        quickAddKcal: existing?.quickAddKcal ?? null,
+        quickAddProteinG: existing?.quickAddProteinG ?? null,
+        servings: existing?.servings ?? 1,
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        localDate: p.localDate,
+        mealSlot: p.mealSlot,
+        foodId: p.foodId,
+        quickAddName: p.quickAddName,
+        quickAddKcal: p.quickAddKcal,
+        quickAddProteinG: p.quickAddProteinG,
+        servings: p.servings,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type WaterEntryPayload = { localDate: string; loggedAt: string; ml: number; clientUpdatedAt: string };
+
+export function decideWaterEntryPullApply(params: {
+  item: PulledItem;
+  existing: WaterEntryRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<WaterEntryRow> {
+  return decideGenericPullApply<WaterEntryRow, WaterEntryPayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        localDate: existing?.localDate ?? '',
+        loggedAt: existing?.loggedAt ?? now,
+        ml: existing?.ml ?? 0,
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        localDate: p.localDate,
+        loggedAt: p.loggedAt,
+        ml: p.ml,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         clientUpdatedAt: p.clientUpdatedAt,

@@ -87,6 +87,13 @@ builder.Services.AddScoped<ISyncPullSource, WorkoutTemplatePullSource>();
 builder.Services.AddScoped<ISyncPullSource, ScheduleEntryPullSource>();
 builder.Services.AddScoped<ISyncPullSource, WorkoutSessionPullSource>();
 builder.Services.AddScoped<ISyncPullSource, SetEntryPullSource>();
+builder.Services.AddScoped<ISyncPullSource, UserProfilePullSource>();
+builder.Services.AddScoped<ISyncPullSource, TargetPullSource>();
+builder.Services.AddScoped<ISyncPullSource, CustomFoodPullSource>();
+builder.Services.AddScoped<ISyncPullSource, FoodOverridePullSource>();
+builder.Services.AddScoped<ISyncPullSource, SavedMealPullSource>();
+builder.Services.AddScoped<ISyncPullSource, FoodEntryPullSource>();
+builder.Services.AddScoped<ISyncPullSource, WaterEntryPullSource>();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

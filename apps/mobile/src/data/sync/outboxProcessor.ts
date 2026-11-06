@@ -4,9 +4,16 @@ import type { SyncOpDto, SyncOpResultDto } from '../api/client';
 import { getDb } from '../db/client';
 import {
   exercise,
+  food,
+  foodEntry,
+  foodOverride,
   outbox,
+  profile,
+  savedMeal,
   scheduleEntry,
   setEntry,
+  target,
+  waterEntry,
   weightEntry,
   workoutSession,
   workoutTemplate,
@@ -14,9 +21,16 @@ import {
 } from '../db/schema';
 import {
   decideCustomExercisePushResult,
+  decideCustomFoodPushResult,
+  decideFoodEntryPushResult,
+  decideFoodOverridePushResult,
   decidePushResult,
+  decideProfilePushResult,
+  decideSavedMealPushResult,
   decideScheduleEntryPushResult,
   decideSetEntryPushResult,
+  decideTargetsPushResult,
+  decideWaterEntryPushResult,
   decideWorkoutSessionPushResult,
   decideWorkoutTemplatePushResult,
 } from './pushApply';
@@ -79,6 +93,69 @@ function applyResult(db: ReturnType<typeof getDb>, entity: string, recordId: str
       const action = decideSetEntryPushResult(result);
       if (action.action === 'remove-outbox-and-update-entry') {
         db.update(setEntry).set(action.patch).where(eq(setEntry.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'profile': {
+      const action = decideProfilePushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(profile).set(action.patch).where(eq(profile.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'targets': {
+      const action = decideTargetsPushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(target).set(action.patch).where(eq(target.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'custom_food': {
+      const action = decideCustomFoodPushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(food).set(action.patch).where(eq(food.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'food_override': {
+      const action = decideFoodOverridePushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(foodOverride).set(action.patch).where(eq(foodOverride.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'saved_meal': {
+      const action = decideSavedMealPushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(savedMeal).set(action.patch).where(eq(savedMeal.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'food_entry': {
+      const action = decideFoodEntryPushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(foodEntry).set(action.patch).where(eq(foodEntry.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'water_entry': {
+      const action = decideWaterEntryPushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(waterEntry).set(action.patch).where(eq(waterEntry.id, recordId)).run();
       } else if (action.action === 'remove-outbox-and-record-error') {
         useSyncStatusStore.getState().setStatus('error', action.reason);
       }

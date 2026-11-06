@@ -1,5 +1,8 @@
+using FitnessCompanion.Api.Modules.Nutrition;
+using FitnessCompanion.Api.Modules.Profile;
 using FitnessCompanion.Api.Modules.Progress;
 using FitnessCompanion.Api.Modules.Sync.Dtos;
+using FitnessCompanion.Api.Modules.Water;
 using FitnessCompanion.Api.Modules.Workouts;
 using FitnessCompanion.Api.Shared;
 using Microsoft.EntityFrameworkCore;
@@ -143,5 +146,178 @@ public sealed class SetEntryPullSource(AppDbContext db) : ISyncPullSource
         isWarmup = s.IsWarmup,
         completed = s.Completed,
         clientUpdatedAt = s.ClientUpdatedAt,
+    };
+}
+
+public sealed class UserProfilePullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.UserProfiles
+            .Where(p => p.ServerSeq > cursorExclusive)
+            .OrderBy(p => p.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(p => new SyncPullItemDto("profile", p.Id, p.ServerSeq, p.Version, ToPayload(p), p.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(UserProfile p) => new
+    {
+        sex = p.Sex,
+        birthDate = p.BirthDate.ToString("yyyy-MM-dd"),
+        heightCm = p.HeightCm,
+        lifestyleFactor = p.LifestyleFactor,
+        goal = p.Goal,
+        rateKgPerWeek = p.RateKgPerWeek,
+        units = p.Units,
+        timeZone = p.TimeZone,
+        clientUpdatedAt = p.ClientUpdatedAt,
+    };
+}
+
+public sealed class TargetPullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.Targets
+            .Where(t => t.ServerSeq > cursorExclusive)
+            .OrderBy(t => t.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(t => new SyncPullItemDto("targets", t.Id, t.ServerSeq, t.Version, ToPayload(t), t.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(Target t) => new
+    {
+        effectiveFrom = t.EffectiveFrom.ToString("yyyy-MM-dd"),
+        kcalRest = t.KcalRest,
+        kcalTraining = t.KcalTraining,
+        proteinG = t.ProteinG,
+        fatG = t.FatG,
+        carbG = t.CarbG,
+        waterMl = t.WaterMl,
+        source = t.Source,
+        clientUpdatedAt = t.ClientUpdatedAt,
+    };
+}
+
+public sealed class CustomFoodPullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.CustomFoods
+            .Where(f => f.ServerSeq > cursorExclusive)
+            .OrderBy(f => f.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(f => new SyncPullItemDto("custom_food", f.Id, f.ServerSeq, f.Version, ToPayload(f), f.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(CustomFood f) => new
+    {
+        name = f.Name,
+        servingUnit = f.ServingUnit,
+        servingG = f.ServingG,
+        kcal = f.Kcal,
+        proteinG = f.ProteinG,
+        carbG = f.CarbG,
+        fatG = f.FatG,
+        clientUpdatedAt = f.ClientUpdatedAt,
+    };
+}
+
+public sealed class FoodOverridePullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.FoodOverrides
+            .Where(f => f.ServerSeq > cursorExclusive)
+            .OrderBy(f => f.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(f => new SyncPullItemDto("food_override", f.Id, f.ServerSeq, f.Version, ToPayload(f), f.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(FoodOverride f) => new
+    {
+        foodId = f.FoodId,
+        kcal = f.Kcal,
+        proteinG = f.ProteinG,
+        carbG = f.CarbG,
+        fatG = f.FatG,
+        clientUpdatedAt = f.ClientUpdatedAt,
+    };
+}
+
+public sealed class SavedMealPullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.SavedMeals
+            .Where(m => m.ServerSeq > cursorExclusive)
+            .OrderBy(m => m.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(m => new SyncPullItemDto("saved_meal", m.Id, m.ServerSeq, m.Version, ToPayload(m), m.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(SavedMeal m) => new
+    {
+        name = m.Name,
+        itemsJson = m.ItemsJson,
+        clientUpdatedAt = m.ClientUpdatedAt,
+    };
+}
+
+public sealed class FoodEntryPullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.FoodEntries
+            .Where(f => f.ServerSeq > cursorExclusive)
+            .OrderBy(f => f.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(f => new SyncPullItemDto("food_entry", f.Id, f.ServerSeq, f.Version, ToPayload(f), f.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(FoodEntry f) => new
+    {
+        localDate = f.LocalDate.ToString("yyyy-MM-dd"),
+        mealSlot = f.MealSlot,
+        foodId = f.FoodId,
+        quickAddName = f.QuickAddName,
+        quickAddKcal = f.QuickAddKcal,
+        quickAddProteinG = f.QuickAddProteinG,
+        servings = f.Servings,
+        clientUpdatedAt = f.ClientUpdatedAt,
+    };
+}
+
+public sealed class WaterEntryPullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.WaterEntries
+            .Where(w => w.ServerSeq > cursorExclusive)
+            .OrderBy(w => w.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(w => new SyncPullItemDto("water_entry", w.Id, w.ServerSeq, w.Version, ToPayload(w), w.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(WaterEntry w) => new
+    {
+        localDate = w.LocalDate.ToString("yyyy-MM-dd"),
+        loggedAt = w.LoggedAt,
+        ml = w.Ml,
+        clientUpdatedAt = w.ClientUpdatedAt,
     };
 }

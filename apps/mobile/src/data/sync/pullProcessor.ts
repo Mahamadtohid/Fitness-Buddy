@@ -3,16 +3,30 @@ import { eq } from 'drizzle-orm';
 import { SYNC_STATE_SINGLETON_ID, getDb } from '../db/client';
 import {
   exercise,
+  food,
+  foodEntry,
+  foodOverride,
   outbox,
+  profile,
+  savedMeal,
   scheduleEntry,
   setEntry,
   syncState,
+  target,
+  waterEntry,
   weightEntry,
   workoutSession,
   workoutTemplate,
   type ExerciseRow,
+  type FoodEntryRow,
+  type FoodOverrideRow,
+  type FoodRow,
+  type ProfileRow,
+  type SavedMealRow,
   type ScheduleEntryRow,
   type SetEntryRow,
+  type TargetRow,
+  type WaterEntryRow,
   type WeightEntryRow,
   type WorkoutSessionRow,
   type WorkoutTemplateRow,
@@ -20,9 +34,16 @@ import {
 import { authorizedClient } from './authorizedClient';
 import {
   decideCustomExercisePullApply,
+  decideCustomFoodPullApply,
+  decideFoodEntryPullApply,
+  decideFoodOverridePullApply,
   decidePullApply,
+  decideProfilePullApply,
+  decideSavedMealPullApply,
   decideScheduleEntryPullApply,
   decideSetEntryPullApply,
+  decideTargetsPullApply,
+  decideWaterEntryPullApply,
   decideWorkoutSessionPullApply,
   decideWorkoutTemplatePullApply,
   type PulledItem,
@@ -89,6 +110,68 @@ function applyItem(db: ReturnType<typeof getDb>, item: PulledItem, now: string):
       if (decision.action === 'noop') return;
       if (existing) db.update(setEntry).set(decision.entry).where(eq(setEntry.id, item.recordId)).run();
       else db.insert(setEntry).values(decision.entry).run();
+      return;
+    }
+    case 'profile': {
+      const existing = (db.select().from(profile).where(eq(profile.id, item.recordId)).all()[0] ??
+        null) as ProfileRow | null;
+      const decision = decideProfilePullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(profile).set(decision.entry).where(eq(profile.id, item.recordId)).run();
+      else db.insert(profile).values(decision.entry).run();
+      return;
+    }
+    case 'targets': {
+      const existing = (db.select().from(target).where(eq(target.id, item.recordId)).all()[0] ??
+        null) as TargetRow | null;
+      const decision = decideTargetsPullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(target).set(decision.entry).where(eq(target.id, item.recordId)).run();
+      else db.insert(target).values(decision.entry).run();
+      return;
+    }
+    case 'custom_food': {
+      const existing = (db.select().from(food).where(eq(food.id, item.recordId)).all()[0] ?? null) as FoodRow | null;
+      const decision = decideCustomFoodPullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(food).set(decision.entry).where(eq(food.id, item.recordId)).run();
+      else db.insert(food).values(decision.entry).run();
+      return;
+    }
+    case 'food_override': {
+      const existing = (db.select().from(foodOverride).where(eq(foodOverride.id, item.recordId)).all()[0] ??
+        null) as FoodOverrideRow | null;
+      const decision = decideFoodOverridePullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(foodOverride).set(decision.entry).where(eq(foodOverride.id, item.recordId)).run();
+      else db.insert(foodOverride).values(decision.entry).run();
+      return;
+    }
+    case 'saved_meal': {
+      const existing = (db.select().from(savedMeal).where(eq(savedMeal.id, item.recordId)).all()[0] ??
+        null) as SavedMealRow | null;
+      const decision = decideSavedMealPullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(savedMeal).set(decision.entry).where(eq(savedMeal.id, item.recordId)).run();
+      else db.insert(savedMeal).values(decision.entry).run();
+      return;
+    }
+    case 'food_entry': {
+      const existing = (db.select().from(foodEntry).where(eq(foodEntry.id, item.recordId)).all()[0] ??
+        null) as FoodEntryRow | null;
+      const decision = decideFoodEntryPullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(foodEntry).set(decision.entry).where(eq(foodEntry.id, item.recordId)).run();
+      else db.insert(foodEntry).values(decision.entry).run();
+      return;
+    }
+    case 'water_entry': {
+      const existing = (db.select().from(waterEntry).where(eq(waterEntry.id, item.recordId)).all()[0] ??
+        null) as WaterEntryRow | null;
+      const decision = decideWaterEntryPullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(waterEntry).set(decision.entry).where(eq(waterEntry.id, item.recordId)).run();
+      else db.insert(waterEntry).values(decision.entry).run();
       return;
     }
     default:

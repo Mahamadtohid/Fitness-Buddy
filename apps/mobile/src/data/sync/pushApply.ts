@@ -1,8 +1,15 @@
 import type { SyncOpResultDto } from '../api/client';
 import type {
   ExerciseRow,
+  FoodEntryRow,
+  FoodOverrideRow,
+  FoodRow,
+  ProfileRow,
+  SavedMealRow,
   ScheduleEntryRow,
   SetEntryRow,
+  TargetRow,
+  WaterEntryRow,
   WeightEntryRow,
   WorkoutSessionRow,
   WorkoutTemplateRow,
@@ -138,6 +145,147 @@ export function decideSetEntryPushResult(result: SyncOpResultDto): PushResultAct
     rpe: payload.rpe,
     isWarmup: payload.isWarmup ? 1 : 0,
     completed: payload.completed ? 1 : 0,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type ProfilePayload = {
+  sex: string;
+  birthDate: string;
+  heightCm: number;
+  lifestyleFactor: number;
+  goal: string;
+  rateKgPerWeek: number;
+  units: string;
+  timeZone: string;
+  clientUpdatedAt: string;
+};
+
+export function decideProfilePushResult(result: SyncOpResultDto): PushResultAction<ProfileRow> {
+  return decideGenericPushResult<ProfileRow, ProfilePayload>(result, (payload) => ({
+    sex: payload.sex,
+    birthDate: payload.birthDate,
+    heightCm: payload.heightCm,
+    lifestyleFactor: payload.lifestyleFactor,
+    goal: payload.goal,
+    rateKgPerWeek: payload.rateKgPerWeek,
+    units: payload.units,
+    timeZone: payload.timeZone,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type TargetPayload = {
+  effectiveFrom: string;
+  kcalRest: number;
+  kcalTraining: number;
+  proteinG: number;
+  fatG: number;
+  carbG: number;
+  waterMl: number;
+  source: string;
+  clientUpdatedAt: string;
+};
+
+export function decideTargetsPushResult(result: SyncOpResultDto): PushResultAction<TargetRow> {
+  return decideGenericPushResult<TargetRow, TargetPayload>(result, (payload) => ({
+    effectiveFrom: payload.effectiveFrom,
+    kcalRest: payload.kcalRest,
+    kcalTraining: payload.kcalTraining,
+    proteinG: payload.proteinG,
+    fatG: payload.fatG,
+    carbG: payload.carbG,
+    waterMl: payload.waterMl,
+    source: payload.source,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type CustomFoodPayload = {
+  name: string;
+  servingUnit: string;
+  servingG: number;
+  kcal: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  clientUpdatedAt: string;
+};
+
+export function decideCustomFoodPushResult(result: SyncOpResultDto): PushResultAction<FoodRow> {
+  return decideGenericPushResult<FoodRow, CustomFoodPayload>(result, (payload) => ({
+    name: payload.name,
+    servingUnit: payload.servingUnit,
+    servingG: payload.servingG,
+    kcal: payload.kcal,
+    proteinG: payload.proteinG,
+    carbG: payload.carbG,
+    fatG: payload.fatG,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type FoodOverridePayload = {
+  foodId: string;
+  kcal: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+  clientUpdatedAt: string;
+};
+
+export function decideFoodOverridePushResult(result: SyncOpResultDto): PushResultAction<FoodOverrideRow> {
+  return decideGenericPushResult<FoodOverrideRow, FoodOverridePayload>(result, (payload) => ({
+    foodId: payload.foodId,
+    kcal: payload.kcal,
+    proteinG: payload.proteinG,
+    carbG: payload.carbG,
+    fatG: payload.fatG,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type SavedMealPayload = { name: string; itemsJson: string; clientUpdatedAt: string };
+
+export function decideSavedMealPushResult(result: SyncOpResultDto): PushResultAction<SavedMealRow> {
+  return decideGenericPushResult<SavedMealRow, SavedMealPayload>(result, (payload) => ({
+    name: payload.name,
+    itemsJson: payload.itemsJson,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type FoodEntryPayload = {
+  localDate: string;
+  mealSlot: string;
+  foodId: string | null;
+  quickAddName: string | null;
+  quickAddKcal: number | null;
+  quickAddProteinG: number | null;
+  servings: number;
+  clientUpdatedAt: string;
+};
+
+export function decideFoodEntryPushResult(result: SyncOpResultDto): PushResultAction<FoodEntryRow> {
+  return decideGenericPushResult<FoodEntryRow, FoodEntryPayload>(result, (payload) => ({
+    localDate: payload.localDate,
+    mealSlot: payload.mealSlot,
+    foodId: payload.foodId,
+    quickAddName: payload.quickAddName,
+    quickAddKcal: payload.quickAddKcal,
+    quickAddProteinG: payload.quickAddProteinG,
+    servings: payload.servings,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type WaterEntryPayload = { localDate: string; loggedAt: string; ml: number; clientUpdatedAt: string };
+
+export function decideWaterEntryPushResult(result: SyncOpResultDto): PushResultAction<WaterEntryRow> {
+  return decideGenericPushResult<WaterEntryRow, WaterEntryPayload>(result, (payload) => ({
+    localDate: payload.localDate,
+    loggedAt: payload.loggedAt,
+    ml: payload.ml,
     clientUpdatedAt: payload.clientUpdatedAt,
   }));
 }
