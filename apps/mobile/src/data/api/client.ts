@@ -36,11 +36,13 @@ export type SyncOpDto = {
 
 export type SyncOpStatus = 'applied' | 'rejected' | 'conflict';
 
+/** `payload` shape depends on `entity` — each entity's push/pull-apply module knows its own
+ * shape and casts accordingly (see data/sync/pushApply.ts, pullApply.ts and their siblings). */
 export type SyncOpResultDto = {
   opId: string;
   status: SyncOpStatus;
   reason?: string | null;
-  serverCopy?: { version: number; serverSeq: number; payload?: WeightEntryPayload | null } | null;
+  serverCopy?: { version: number; serverSeq: number; payload?: unknown } | null;
 };
 
 export type SyncPushResponse = { results: SyncOpResultDto[] };
@@ -50,7 +52,7 @@ export type SyncPullItemDto = {
   recordId: string;
   serverSeq: number;
   version: number;
-  payload?: WeightEntryPayload | null;
+  payload?: unknown;
   deletedAt: string | null;
 };
 

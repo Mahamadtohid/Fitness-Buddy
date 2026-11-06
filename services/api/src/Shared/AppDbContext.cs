@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using FitnessCompanion.Api.Modules.Identity.Entities;
 using FitnessCompanion.Api.Modules.Progress;
+using FitnessCompanion.Api.Modules.Workouts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
     public DbSet<InviteCode> InviteCodes => Set<InviteCode>();
     public DbSet<WeightEntry> WeightEntries => Set<WeightEntry>();
     public DbSet<ProcessedOp> ProcessedOps => Set<ProcessedOp>();
+    public DbSet<CustomExercise> CustomExercises => Set<CustomExercise>();
+    public DbSet<WorkoutTemplate> WorkoutTemplates => Set<WorkoutTemplate>();
+    public DbSet<ScheduleEntry> ScheduleEntries => Set<ScheduleEntry>();
+    public DbSet<WorkoutSession> WorkoutSessions => Set<WorkoutSession>();
+    public DbSet<SetEntry> SetEntries => Set<SetEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -43,6 +49,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         builder.Entity<WeightEntry>(e =>
         {
             e.HasIndex(w => new { w.UserId, w.LocalDate })
+                .IsUnique()
+                .HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        builder.Entity<ScheduleEntry>(e =>
+        {
+            e.HasIndex(s => new { s.UserId, s.Weekday })
                 .IsUnique()
                 .HasFilter("\"DeletedAt\" IS NULL");
         });

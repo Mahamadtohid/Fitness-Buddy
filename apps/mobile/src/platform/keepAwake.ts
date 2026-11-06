@@ -1,7 +1,13 @@
+import { activateKeepAwakeAsync, deactivateKeepAwake as expoDeactivateKeepAwake } from 'expo-keep-awake';
+
+const TAG = 'active-workout';
+
+/** Fire-and-forget by design (matches the pre-existing sync signature) — the active workout
+ * screen doesn't need to block on this; a failure here just means the screen can sleep. */
 export function activateKeepAwake(): void {
-  throw new Error('Not implemented: wired up in the Workouts phase (active workout screen, PRD §5)');
+  void activateKeepAwakeAsync(TAG);
 }
 
 export function deactivateKeepAwake(): void {
-  throw new Error('Not implemented: wired up in the Workouts phase (active workout screen, PRD §5)');
+  void expoDeactivateKeepAwake(TAG);
 }

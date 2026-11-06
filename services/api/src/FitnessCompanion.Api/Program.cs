@@ -10,6 +10,7 @@ using FitnessCompanion.Api.Modules.Nutrition;
 using FitnessCompanion.Api.Modules.Profile;
 using FitnessCompanion.Api.Modules.Progress;
 using FitnessCompanion.Api.Modules.Sync;
+using FitnessCompanion.Api.Modules.Sync.PullSources;
 using FitnessCompanion.Api.Modules.Water;
 using FitnessCompanion.Api.Modules.Workouts;
 using FitnessCompanion.Api.Shared;
@@ -80,6 +81,12 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailSender, LoggingEmailSender>();
 builder.Services.AddScoped<IServerSequence, PostgresServerSequence>();
+builder.Services.AddScoped<ISyncPullSource, WeightEntryPullSource>();
+builder.Services.AddScoped<ISyncPullSource, CustomExercisePullSource>();
+builder.Services.AddScoped<ISyncPullSource, WorkoutTemplatePullSource>();
+builder.Services.AddScoped<ISyncPullSource, ScheduleEntryPullSource>();
+builder.Services.AddScoped<ISyncPullSource, WorkoutSessionPullSource>();
+builder.Services.AddScoped<ISyncPullSource, SetEntryPullSource>();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

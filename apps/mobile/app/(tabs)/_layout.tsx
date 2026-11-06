@@ -5,11 +5,13 @@ import { StyleSheet, View } from 'react-native';
 import { QuickAddButton } from '../../src/design/components/QuickAddButton';
 import { useTheme } from '../../src/design';
 import { initSync } from '../../src/data/sync';
+import { seedStarterTemplatesIfEmpty } from '../../src/data/repositories/workoutTemplateRepository';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
 
   useEffect(() => {
+    seedStarterTemplatesIfEmpty();
     initSync();
   }, []);
 
