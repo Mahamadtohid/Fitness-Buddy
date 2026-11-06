@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using FitnessCompanion.Api.Modules.Identity.Entities;
+using FitnessCompanion.Api.Modules.Progress;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +16,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<InviteCode> InviteCodes => Set<InviteCode>();
+    public DbSet<WeightEntry> WeightEntries => Set<WeightEntry>();
+    public DbSet<ProcessedOp> ProcessedOps => Set<ProcessedOp>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        // PRD §7.5: a single global monotonically increasing sequence stamped onto every synced
+        // entity's ServerSeq, so pull cursors have one consistent ordering across all entity types.
+        builder.HasSequence<long>("global_server_seq").StartsAt(1);
 
         builder.Entity<RefreshToken>(e =>
         {
@@ -31,6 +38,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         builder.Entity<InviteCode>(e =>
         {
             e.HasIndex(i => i.Code).IsUnique();
+        });
+
+        builder.Entity<WeightEntry>(e =>
+        {
+            e.HasIndex(w => new { w.UserId, w.LocalDate })
+                .IsUnique()
+                .HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        builder.Entity<ProcessedOp>(e =>
+        {
+            // op_id only needs to be unique per user; this composite key doubles as the
+            // idempotency lookup index used on every push (PRD §7.5 step 3).
+            e.HasKey(p => new { p.OpId, p.UserId });
         });
 
         foreach (var entityType in builder.Model.GetEntityTypes())

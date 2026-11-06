@@ -1,11 +1,17 @@
 import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { QuickAddButton } from '../../src/design/components/QuickAddButton';
 import { useTheme } from '../../src/design';
+import { initSync } from '../../src/data/sync';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+
+  useEffect(() => {
+    initSync();
+  }, []);
 
   return (
     <View style={styles.flex}>
