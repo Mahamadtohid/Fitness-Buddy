@@ -18,12 +18,9 @@ import { activateKeepAwake, deactivateKeepAwake } from '../src/platform/keepAwak
 import { triggerHaptic } from '../src/platform/haptics';
 import { cancelNotification, scheduleRestTimerNotification } from '../src/platform/notifications';
 import type { ExerciseRow } from '../src/data/db/schema';
+import { getLocalDateString } from '../src/platform/localDate';
 
 type SetRow = { weightKg: string; reps: string; confirmed: boolean };
-
-function todayLocalDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function overloadMessage(suggestion: ReturnType<typeof suggestOverload>): string | null {
   if (suggestion === 'increase-weight') return 'Last 2 sessions at the top of your rep range — try adding weight.';
@@ -34,7 +31,7 @@ function overloadMessage(suggestion: ReturnType<typeof suggestOverload>): string
 export default function ActiveWorkoutScreen() {
   const { colors } = useTheme();
   const { templateId } = useLocalSearchParams<{ templateId: string }>();
-  const [sessionId] = useState(() => startSession(todayLocalDate(), templateId ?? null));
+  const [sessionId] = useState(() => startSession(getLocalDateString(), templateId ?? null));
 
   const template = useMemo(() => listTemplates().find((t) => t.id === templateId), [templateId]);
   const allExercises = useMemo(() => Object.values(listExercisesByMuscleGroup()).flat(), []);

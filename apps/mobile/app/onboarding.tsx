@@ -9,6 +9,7 @@ import { logWeight } from '../src/data/repositories/weightEntryRepository';
 import { saveProfile } from '../src/data/repositories/profileRepository';
 import { createTargets } from '../src/data/repositories/targetsRepository';
 import { waterTargetMl } from '../src/data/repositories/waterEntryRepository';
+import { getLocalDateString } from '../src/platform/localDate';
 
 type Sex = 'male' | 'female';
 type Goal = 'lose' | 'maintain' | 'gain';
@@ -20,10 +21,6 @@ const LIFESTYLE_OPTIONS: { value: number; label: string }[] = [
 ];
 
 const GOAL_DEFAULT_RATE: Record<Goal, number> = { lose: -0.5, maintain: 0, gain: 0.25 };
-
-function todayLocalDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default function OnboardingScreen() {
   const { colors } = useTheme();
@@ -61,7 +58,7 @@ export default function OnboardingScreen() {
       return;
     }
 
-    const today = todayLocalDate();
+    const today = getLocalDateString();
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const ageYears = calculateAgeFromBirthDate(birthDate.trim());
 

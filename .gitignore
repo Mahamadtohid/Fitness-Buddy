@@ -13,3 +13,7 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# .NET build output
+bin/
+obj/

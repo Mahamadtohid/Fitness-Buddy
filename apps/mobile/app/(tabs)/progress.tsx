@@ -5,6 +5,7 @@ import { Button, Card, spacing, TextField, Typography, useTheme } from '../../sr
 import { listWeightEntries, logWeight } from '../../src/data/repositories/weightEntryRepository';
 import { retryNow, useSyncStatusStore } from '../../src/data/sync';
 import type { WeightEntryRow } from '../../src/data/db/schema';
+import { getLocalDateString } from '../../src/platform/localDate';
 
 /**
  * Minimal weigh-in screen — not the full Phase 5 Progress feature (no trend chart or weekly
@@ -28,7 +29,7 @@ export default function ProgressScreen() {
   const onLog = () => {
     const weightKg = Number(weightInput);
     if (!Number.isFinite(weightKg) || weightKg <= 0) return;
-    const localDate = new Date().toISOString().slice(0, 10);
+    const localDate = getLocalDateString();
     logWeight(localDate, weightKg);
     setWeightInput('');
     refresh();
