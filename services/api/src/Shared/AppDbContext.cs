@@ -1,6 +1,9 @@
 using System.Linq.Expressions;
 using FitnessCompanion.Api.Modules.Identity.Entities;
+using FitnessCompanion.Api.Modules.Nutrition;
+using FitnessCompanion.Api.Modules.Profile;
 using FitnessCompanion.Api.Modules.Progress;
+using FitnessCompanion.Api.Modules.Water;
 using FitnessCompanion.Api.Modules.Workouts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -24,6 +27,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
     public DbSet<ScheduleEntry> ScheduleEntries => Set<ScheduleEntry>();
     public DbSet<WorkoutSession> WorkoutSessions => Set<WorkoutSession>();
     public DbSet<SetEntry> SetEntries => Set<SetEntry>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<Target> Targets => Set<Target>();
+    public DbSet<CustomFood> CustomFoods => Set<CustomFood>();
+    public DbSet<FoodOverride> FoodOverrides => Set<FoodOverride>();
+    public DbSet<SavedMeal> SavedMeals => Set<SavedMeal>();
+    public DbSet<FoodEntry> FoodEntries => Set<FoodEntry>();
+    public DbSet<WaterEntry> WaterEntries => Set<WaterEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -56,6 +66,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         builder.Entity<ScheduleEntry>(e =>
         {
             e.HasIndex(s => new { s.UserId, s.Weekday })
+                .IsUnique()
+                .HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        builder.Entity<UserProfile>(e =>
+        {
+            // One live profile row per user (singleton) — sync lookup is by UserId alone.
+            e.HasIndex(p => p.UserId)
+                .IsUnique()
+                .HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        builder.Entity<FoodOverride>(e =>
+        {
+            e.HasIndex(f => new { f.UserId, f.FoodId })
                 .IsUnique()
                 .HasFilter("\"DeletedAt\" IS NULL");
         });

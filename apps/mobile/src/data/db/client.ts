@@ -3,6 +3,7 @@ import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 
 import * as schema from './schema';
 import { SEED_EXERCISES } from './seedExercises';
+import { SEED_FOODS } from './seedFoods';
 
 export const SYNC_STATE_SINGLETON_ID = 'singleton';
 
@@ -122,6 +123,117 @@ CREATE TABLE IF NOT EXISTS set_entry (
   server_seq INTEGER NOT NULL DEFAULT 0,
   deleted_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS profile (
+  id TEXT PRIMARY KEY NOT NULL,
+  sex TEXT NOT NULL,
+  birth_date TEXT NOT NULL,
+  height_cm REAL NOT NULL,
+  lifestyle_factor REAL NOT NULL,
+  goal TEXT NOT NULL,
+  rate_kg_per_week REAL NOT NULL,
+  units TEXT NOT NULL,
+  time_zone TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS target (
+  id TEXT PRIMARY KEY NOT NULL,
+  effective_from TEXT NOT NULL,
+  kcal_rest REAL NOT NULL,
+  kcal_training REAL NOT NULL,
+  protein_g REAL NOT NULL,
+  fat_g REAL NOT NULL,
+  carb_g REAL NOT NULL,
+  water_ml REAL NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS food (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  serving_unit TEXT NOT NULL,
+  serving_g REAL NOT NULL,
+  kcal REAL NOT NULL,
+  protein_g REAL NOT NULL,
+  carb_g REAL NOT NULL,
+  fat_g REAL NOT NULL,
+  is_custom INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS food_override (
+  id TEXT PRIMARY KEY NOT NULL,
+  food_id TEXT NOT NULL UNIQUE,
+  kcal REAL NOT NULL,
+  protein_g REAL NOT NULL,
+  carb_g REAL NOT NULL,
+  fat_g REAL NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS saved_meal (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  items_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS food_entry (
+  id TEXT PRIMARY KEY NOT NULL,
+  local_date TEXT NOT NULL,
+  meal_slot TEXT NOT NULL,
+  food_id TEXT,
+  quick_add_name TEXT,
+  quick_add_kcal REAL,
+  quick_add_protein_g REAL,
+  servings REAL NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS water_entry (
+  id TEXT PRIMARY KEY NOT NULL,
+  local_date TEXT NOT NULL,
+  logged_at TEXT NOT NULL,
+  ml REAL NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
 `;
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
@@ -167,10 +279,41 @@ function seedExerciseCatalogIfEmpty(instance: ReturnType<typeof drizzle<typeof s
     .run();
 }
 
+/** Twin of `seedExerciseCatalogIfEmpty` — same reasoning (shared reference data, never syncs). */
+function seedFoodCatalogIfEmpty(instance: ReturnType<typeof drizzle<typeof schema>>): void {
+  const existing = instance.select({ id: schema.food.id }).from(schema.food).limit(1).all();
+  if (existing.length > 0) return;
+
+  const now = new Date().toISOString();
+  instance
+    .insert(schema.food)
+    .values(
+      SEED_FOODS.map((seed) => ({
+        id: seed.id,
+        name: seed.name,
+        servingUnit: seed.servingUnit,
+        servingG: seed.servingG,
+        kcal: seed.kcal,
+        proteinG: seed.proteinG,
+        carbG: seed.carbG,
+        fatG: seed.fatG,
+        isCustom: 0,
+        createdAt: now,
+        updatedAt: now,
+        clientUpdatedAt: now,
+        version: 0,
+        serverSeq: 0,
+        deletedAt: null,
+      })),
+    )
+    .run();
+}
+
 export function getDb() {
   if (!db) {
     db = drizzle(openAndBootstrap('fitness-companion.db'), { schema });
     seedExerciseCatalogIfEmpty(db);
+    seedFoodCatalogIfEmpty(db);
   }
   return db;
 }

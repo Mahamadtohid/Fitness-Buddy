@@ -29,3 +29,15 @@ export function calculateTrainingDayTarget(
 ): number {
   return calculateRestDayTarget(input) + trainingBumpKcal;
 }
+
+/** Shared by onboarding and Settings — age isn't stored on the profile, only `birthDate` is, so
+ * every BMR calculation derives it fresh. `now` is injectable for deterministic tests. */
+export function calculateAgeFromBirthDate(birthDate: string, now: Date = new Date()): number {
+  const birth = new Date(`${birthDate}T00:00:00Z`);
+  let age = now.getUTCFullYear() - birth.getUTCFullYear();
+  const hadBirthdayThisYear =
+    now.getUTCMonth() > birth.getUTCMonth() ||
+    (now.getUTCMonth() === birth.getUTCMonth() && now.getUTCDate() >= birth.getUTCDate());
+  if (!hadBirthdayThisYear) age -= 1;
+  return age;
+}

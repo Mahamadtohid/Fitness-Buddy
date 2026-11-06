@@ -61,3 +61,23 @@ cd services/api
 dotnet ef migrations add AddWorkoutsEntities --project src/FitnessCompanion.Api --output-dir Migrations
 dotnet ef database update --project src/FitnessCompanion.Api
 ```
+
+## Phase 4 addition: profile, targets, nutrition and water entities
+
+`AddNutritionProfileEntities` adds, on top of the above:
+- `UserProfiles` table (PRD §8.3 `profile`) with a unique index on `UserId` alone (one live
+  profile row per user — sync lookup is by UserId, not RecordId, since it's a singleton).
+- `Targets` table (PRD §8.3 `targets`) — append-only history, no extra uniqueness.
+- `CustomFoods` table (PRD §8.3 `food`, custom rows only — the seeded ~150-item catalog is
+  client-only static data, same reasoning as Workouts' `CustomExercise`).
+- `FoodOverrides` table (PRD §8.3 `food_override`) with a unique index on `(UserId, FoodId)`,
+  same shape as `ScheduleEntries`' `(UserId, Weekday)` index.
+- `SavedMeals` table (PRD §8.3 `saved_meal`) — `ItemsJson` is an opaque client-serialized blob.
+- `FoodEntries` table (PRD §8.3 `food_entry`), no date uniqueness (multiple entries/day).
+- `WaterEntries` table (PRD §8.3 `water_entry`), no date uniqueness (multiple entries/day).
+
+```bash
+cd services/api
+dotnet ef migrations add AddNutritionProfileEntities --project src/FitnessCompanion.Api --output-dir Migrations
+dotnet ef database update --project src/FitnessCompanion.Api
+```

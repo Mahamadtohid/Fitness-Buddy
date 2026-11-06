@@ -1,4 +1,4 @@
-import { desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 
 import { getDb } from '../db/client';
 import { outbox, setEntry, workoutSession, type SetEntryRow, type WorkoutSessionRow } from '../db/schema';
@@ -96,4 +96,17 @@ export function lastTwoSessionsRepsFor(exerciseId: string): number[][] {
     }
   }
   return result;
+}
+
+/** Whether a (non-deleted) session already exists for this local date — used by the water
+ * target's training-day bump (PRD §3.6) and the Today summary's calorie target. */
+export function hasSessionForDate(localDate: string): boolean {
+  const db = getDb();
+  const rows = db
+    .select({ id: workoutSession.id })
+    .from(workoutSession)
+    .where(and(eq(workoutSession.localDate, localDate), isNull(workoutSession.deletedAt)))
+    .limit(1)
+    .all();
+  return rows.length > 0;
 }

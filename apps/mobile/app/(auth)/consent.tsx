@@ -14,7 +14,7 @@ export default function ConsentScreen() {
         your account so it can sync across your devices. Read the privacy policy before
         continuing.
       </Typography>
-      <Button label="I agree, continue" onPress={() => router.replace('/(tabs)')} />
+      <Button label="I agree, continue" onPress={() => router.replace('/onboarding')} />
     </View>
   );
 }

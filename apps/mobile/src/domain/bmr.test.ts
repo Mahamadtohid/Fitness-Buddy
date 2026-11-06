@@ -1,4 +1,4 @@
-import { calculateBmr, calculateRestDayTarget, calculateTrainingDayTarget } from './bmr';
+import { calculateAgeFromBirthDate, calculateBmr, calculateRestDayTarget, calculateTrainingDayTarget } from './bmr';
 
 describe('calculateBmr', () => {
   it('applies the Mifflin-St Jeor formula for men', () => {
@@ -55,5 +55,19 @@ describe('calculateTrainingDayTarget', () => {
     const rest = calculateRestDayTarget(profile);
     expect(calculateTrainingDayTarget(profile)).toBeCloseTo(rest + 300);
     expect(calculateTrainingDayTarget(profile, 450)).toBeCloseTo(rest + 450);
+  });
+});
+
+describe('calculateAgeFromBirthDate', () => {
+  it('returns the age when the birthday has already passed this year', () => {
+    expect(calculateAgeFromBirthDate('1990-01-15', new Date('2026-11-07T00:00:00Z'))).toBe(36);
+  });
+
+  it('subtracts one when the birthday has not happened yet this year', () => {
+    expect(calculateAgeFromBirthDate('1990-12-15', new Date('2026-11-07T00:00:00Z'))).toBe(35);
+  });
+
+  it('counts the birthday itself as already turned', () => {
+    expect(calculateAgeFromBirthDate('1990-11-07', new Date('2026-11-07T00:00:00Z'))).toBe(36);
   });
 });
