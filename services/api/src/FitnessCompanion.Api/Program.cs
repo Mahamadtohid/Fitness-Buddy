@@ -34,8 +34,14 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptio
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt configuration section is missing.");
 
-var connectionString = builder.Configuration.GetConnectionString("Postgres")
-    ?? throw new InvalidOperationException("ConnectionStrings:Postgres is missing.");
+var connectionString = builder.Configuration.GetConnectionString("Postgres");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    // An empty (not just missing) string reaches here too — the base appsettings.json
+    // deliberately ships "" so a misconfigured deploy fails on this clear message instead of a
+    // cryptic Guard exception several layers down inside AddNpgSql's health check registration.
+    throw new InvalidOperationException("ConnectionStrings:Postgres is missing.");
+}
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
