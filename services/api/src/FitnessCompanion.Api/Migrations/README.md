@@ -41,3 +41,23 @@ cd services/api
 dotnet ef migrations add AddWeightEntryAndSync --project src/FitnessCompanion.Api --output-dir Migrations
 dotnet ef database update --project src/FitnessCompanion.Api
 ```
+
+## Phase 3 addition: workouts entities
+
+`AddWorkoutsEntities` adds, on top of the above:
+- `CustomExercises` table (PRD §8.3 `exercise`, custom rows only — the seeded catalog is
+  client-only static data and never reaches the server).
+- `WorkoutTemplates` table (PRD §8.3 `workout_template`) — `ItemsJson` is an opaque
+  client-serialized blob, not child rows.
+- `ScheduleEntries` table (PRD §8.3 `schedule`) with a unique index on `(UserId, Weekday)`
+  filtered to live rows, same shape as `WeightEntries`' `(UserId, LocalDate)` index.
+- `WorkoutSessions` table (PRD §8.3 `workout_session`), no date uniqueness.
+- `SetEntries` table (PRD §8.3 `set_entry`), referencing `WorkoutSessions`/`CustomExercises`
+  by id only (no FK constraint enforced yet — exercise ids can also be the client's static
+  seeded-catalog UUIDs, which have no server-side row to reference).
+
+```bash
+cd services/api
+dotnet ef migrations add AddWorkoutsEntities --project src/FitnessCompanion.Api --output-dir Migrations
+dotnet ef database update --project src/FitnessCompanion.Api
+```

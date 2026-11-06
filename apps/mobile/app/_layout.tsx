@@ -40,6 +40,8 @@ function RootNavigator() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="quick-add" options={{ presentation: 'modal', headerShown: true, title: 'Quick add' }} />
+      <Stack.Screen name="active-workout" options={{ headerShown: true, title: 'Workout' }} />
+      <Stack.Screen name="exercise-library" options={{ headerShown: true, title: 'Exercises' }} />
     </Stack>
   );
 }

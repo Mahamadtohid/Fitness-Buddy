@@ -26,7 +26,8 @@
       "expo-router",
       "expo-secure-store",
       "expo-sqlite",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-notifications"
     ],
     "extra": {
       "apiBaseUrl": "http://localhost:5000"
