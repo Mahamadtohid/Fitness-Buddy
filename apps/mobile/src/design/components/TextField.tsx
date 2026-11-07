@@ -8,6 +8,14 @@ import { Typography } from './Typography';
 
 type Props = TextInputProps & {
   label: string;
+  /**
+   * Keep the label for screen readers but don't draw it. For designs where a leading icon plus
+   * placeholder already carries the meaning (the auth screens follow the UI mockup this way).
+   * The label stays required either way, so a field can never ship with nothing to announce —
+   * guidelines §11 warns against relying on placeholder text alone.
+   */
+  hideLabel?: boolean;
+  leadingIcon?: React.ComponentProps<typeof Ionicons>['name'];
 };
 
 /** The imperative handle a `TextInput` exposes (`focus()`, `blur()`, …) — not the same type as the
@@ -15,11 +23,12 @@ type Props = TextInputProps & {
  * fields should type their refs with this rather than with `TextInput`. */
 export type TextFieldHandle = React.ComponentRef<typeof TextInput>;
 
-/** Reveal control sized so the tap target stays comfortable without crowding the text. */
+/** Side insets reserved for the leading icon and the reveal control, so text never runs under them. */
+const LEADING_WIDTH = 44;
 const TOGGLE_WIDTH = 48;
 
 export const TextField = forwardRef<TextFieldHandle, Props>(function TextField(
-  { label, style, secureTextEntry, ...rest },
+  { label, hideLabel = false, leadingIcon, style, secureTextEntry, ...rest },
   ref,
 ) {
   const { colors } = useTheme();
@@ -30,17 +39,26 @@ export const TextField = forwardRef<TextFieldHandle, Props>(function TextField(
 
   return (
     <View style={styles.wrapper}>
-      <Typography variant="caption" color="secondary">
-        {label}
-      </Typography>
+      {hideLabel ? null : (
+        <Typography variant="caption" color="secondary">
+          {label}
+        </Typography>
+      )}
       <View style={styles.inputRow}>
+        {leadingIcon ? (
+          <View style={styles.leading} pointerEvents="none">
+            <Ionicons name={leadingIcon} size={20} color={String(colors.accent)} />
+          </View>
+        ) : null}
         <TextInput
           ref={ref}
+          accessibilityLabel={hideLabel ? label : undefined}
           placeholderTextColor={colors.textSecondary}
           secureTextEntry={isPassword && !revealed}
           style={[
             styles.input,
             { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.surface },
+            leadingIcon ? { paddingLeft: LEADING_WIDTH } : null,
             isPassword ? { paddingRight: TOGGLE_WIDTH } : null,
             style,
           ]}
@@ -77,8 +95,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
-    minHeight: 48,
+    minHeight: 52,
     fontSize: 16,
+  },
+  leading: {
+    position: 'absolute',
+    left: 0,
+    width: LEADING_WIDTH,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   toggle: {
     position: 'absolute',

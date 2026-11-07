@@ -31,6 +31,7 @@
       "expo-status-bar",
       "expo-notifications",
       "expo-sharing",
+      "@react-native-community/datetimepicker",
       [
         "expo-splash-screen",
         {

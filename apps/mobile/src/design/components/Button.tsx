@@ -19,6 +19,8 @@ export function Button({ label, variant = 'primary', loading = false, disabled, 
   const { colors } = useTheme();
   const isPrimary = variant === 'primary';
   const isDisabled = disabled === true || loading;
+  // `accentFill`, not `accent`: the fill is the deeper green that carries a light label legibly,
+  // while `accent` is the brighter green reserved for text and icons (see tokens.ts).
   const contentColor = isPrimary ? colors.accentOn : colors.textPrimary;
 
   return (
@@ -29,7 +31,7 @@ export function Button({ label, variant = 'primary', loading = false, disabled, 
       style={({ pressed }) => [
         styles.base,
         {
-          backgroundColor: isPrimary ? colors.accent : colors.surfaceAlt,
+          backgroundColor: isPrimary ? colors.accentFill : colors.surfaceAlt,
           // §11 wants a visible disabled state: previously a disabled button looked identical to
           // an enabled one and simply ignored taps, which reads as the app being broken.
           opacity: isDisabled ? 0.45 : pressed ? 0.85 : 1,

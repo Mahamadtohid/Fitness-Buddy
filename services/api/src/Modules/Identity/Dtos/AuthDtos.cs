@@ -1,6 +1,6 @@
 namespace FitnessCompanion.Api.Modules.Identity.Dtos;
 
-public sealed record RegisterRequest(string Email, string Password, string InviteCode);
+public sealed record RegisterRequest(string Email, string Password, string InviteCode, string? FullName = null);
 
 public sealed record LoginRequest(string Email, string Password);
 

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { Button, spacing, Typography, useTheme } from '../../src/design';
+import { Button, screenPadding, spacing, Typography, useTheme } from '../../src/design';
 
 export default function ConsentScreen() {
   const { colors } = useTheme();
@@ -12,7 +12,12 @@ export default function ConsentScreen() {
       <Typography variant="body" color="secondary" style={styles.body}>
         FitTrack stores health-related personal data (workouts, food, weight, water) in
         your account so it can sync across your devices. Read the{' '}
-        <Typography variant="body" color="accent" onPress={() => router.push('/privacy-policy')}>
+        <Typography
+          variant="body"
+          color="accent"
+          accessibilityRole="link"
+          onPress={() => router.push('/privacy-policy')}
+        >
           privacy policy
         </Typography>{' '}
         before continuing.
@@ -25,7 +30,7 @@ export default function ConsentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
+    padding: screenPadding,
     justifyContent: 'center',
     gap: spacing.md,
   },

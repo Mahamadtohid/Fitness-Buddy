@@ -105,10 +105,10 @@ function authHeaders(token: string | null): HeadersInit {
  * logic lives one layer up, in `data/sync/authorizedClient.ts`.
  */
 export const client = {
-  register: (email: string, password: string, inviteCode: string) =>
+  register: (email: string, password: string, inviteCode: string, fullName?: string) =>
     request<{ id: string; email: string }>('/api/v1/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, inviteCode }),
+      body: JSON.stringify({ email, password, inviteCode, fullName }),
     }),
 
   login: (email: string, password: string) =>

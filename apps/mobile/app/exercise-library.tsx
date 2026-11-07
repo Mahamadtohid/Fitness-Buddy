@@ -5,6 +5,7 @@ import { Platform, Pressable, SectionList, StyleSheet, View } from 'react-native
 import {
   Button,
   Card,
+  screenPadding,
   spacing,
   TextField,
   Typography,
@@ -221,6 +222,8 @@ export default function ExerciseLibraryScreen() {
       )}
       renderItem={({ item }) => (
         <Pressable
+          accessibilityRole="button"
+          accessibilityHint="Opens this exercise's history"
           onPress={() => router.push({ pathname: '/exercise/[exerciseId]', params: { exerciseId: item.id } })}
         >
           <Card style={styles.exerciseRow}>
@@ -249,7 +252,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: spacing.lg,
+    padding: screenPadding,
     gap: spacing.sm,
     paddingBottom: spacing.xxl,
   },

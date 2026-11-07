@@ -7,6 +7,14 @@ export const spacing = {
   xxl: 48,
 } as const;
 
+/**
+ * Edge padding for a screen's content (FitTrack guidelines §4: "Typical screen padding: 16–20 px").
+ * Kept separate from the `spacing` scale because that scale is also used for gaps and margins —
+ * screens previously padded with `spacing.lg` (24px), which sat outside the guideline range and
+ * cost content width on small devices.
+ */
+export const screenPadding = 20;
+
 export const radius = {
   sm: 6,
   md: 10,
@@ -26,19 +34,17 @@ export const typeScale = {
 };
 
 /**
- * FitTrack global visual system (design guidelines §4). The seven tokens the guidelines name
- * explicitly — background, surface, accent, primary/secondary text, border and error — are taken
- * verbatim. `surfaceAlt`, `accentOn`, `warning` and `success` aren't in that table, so they're
- * derived to sit coherently with it rather than invented as new brand colors: `surfaceAlt` sits
- * between surface and border, `accentOn` is whichever of background/white reads cleanly on the
- * accent fill, and `success` mirrors the accent.
+ * FitTrack visual system. The dark palette is taken from the design-system sheet in the UI mockup
+ * (slate backgrounds `#0F172A`/`#1E293B`/`#334155`, text `#F8FAFC`/`#94A3B8`, and the emerald,
+ * amber and red semantic colors); the light palette is derived from the written guidelines' §4
+ * table, since the mockup only specifies dark.
  *
- * One deliberate deviation: the guidelines' light accent `#159C70` only reaches 3.3–3.5:1 against
- * the light background/surface, which is fine for fills and large text but short of the 4.5:1 AA
- * threshold this palette needs for accent-colored captions and white button labels. Darkened one
- * shade to `#0E7A5A` (4.95:1 on background, 5.32:1 on surface) — same emerald identity, legible at
- * body/caption sizes. The dark theme's `#42C99A` is used exactly as specified; it already clears
- * AA comfortably (7.9–8.9:1).
+ * Why there are two greens: the mockup's primary `#0E7A5A` reads well as a *button fill* under a
+ * white label (5.08:1) but only manages 2.75:1 as *text* on the dark surface, far below AA — and
+ * conversely a green bright enough to be legible as text can't carry a white label. No single
+ * value satisfies both roles, so they're split: `accent` is the bright green used for text, icons,
+ * active states and chart strokes, while `accentFill`/`accentOn` are the primary button's
+ * background and label. Every pairing below clears AA for its actual use.
  */
 const lightColors = {
   background: '#F5F7F8',
@@ -48,6 +54,7 @@ const lightColors = {
   textPrimary: '#17212A',
   textSecondary: '#56616C',
   accent: '#0E7A5A',
+  accentFill: '#0E7A5A',
   accentOn: '#FFFFFF',
   danger: '#DC4242',
   warning: '#8A5A00',
@@ -55,17 +62,18 @@ const lightColors = {
 };
 
 const darkColors = {
-  background: '#101419',
-  surface: '#1A2026',
-  surfaceAlt: '#232A31',
-  border: '#303840',
-  textPrimary: '#F4F7FA',
-  textSecondary: '#AAB3BD',
-  accent: '#42C99A',
-  accentOn: '#101419',
-  danger: '#F87171',
-  warning: '#E8B339',
-  success: '#42C99A',
+  background: '#0F172A',
+  surface: '#1E293B',
+  surfaceAlt: '#334155',
+  border: '#475569',
+  textPrimary: '#F8FAFC',
+  textSecondary: '#94A3B8',
+  accent: '#22C55E',
+  accentFill: '#0E7A5A',
+  accentOn: '#F8FAFC',
+  danger: '#EF4444',
+  warning: '#F59E0B',
+  success: '#16A34A',
 };
 
 export const palettes = {

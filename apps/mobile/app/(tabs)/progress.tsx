@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { FlatList, Image, Platform, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Button, Card, LineChart, Sparkline, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { Button, Card, LineChart, Sparkline, radius, screenPadding, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { listWeightEntries, logWeight } from '../../src/data/repositories/weightEntryRepository';
 import { retryNow, useSyncStatusStore } from '../../src/data/sync';
 import type { CheckInRow, MeasurementRow, PhotoRow, WeightEntryRow } from '../../src/data/db/schema';
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: spacing.lg,
+    padding: screenPadding,
     gap: spacing.md,
   },
   row: {

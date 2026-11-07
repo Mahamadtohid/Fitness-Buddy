@@ -4,7 +4,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { router } from 'expo-router';
 
-import { Button, Card, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { Button, Card, screenPadding, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { getProfile, saveProfile } from '../../src/data/repositories/profileRepository';
 import { createTargets, latestTargets } from '../../src/data/repositories/targetsRepository';
 import { listWeightEntries } from '../../src/data/repositories/weightEntryRepository';
@@ -416,8 +416,8 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: spacing.lg, gap: spacing.md },
-  emptyPadding: { padding: spacing.lg },
+  content: { padding: screenPadding, gap: spacing.md },
+  emptyPadding: { padding: screenPadding },
   card: { gap: spacing.sm },
   groupHeading: { marginTop: spacing.sm, letterSpacing: 0.8 },
   dangerCard: { borderWidth: 1 },
