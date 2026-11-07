@@ -101,12 +101,17 @@ export function lastTwoSessionsRepsFor(exerciseId: string): number[][] {
 /** Whether a (non-deleted) session already exists for this local date — used by the water
  * target's training-day bump (PRD §3.6) and the Today summary's calorie target. */
 export function hasSessionForDate(localDate: string): boolean {
+  return sessionCountForDate(localDate) > 0;
+}
+
+/** Number of (non-deleted) sessions logged on this local date — PRD allows more than one session
+ * per day, so this is the real count, not just a trained/not-trained flag (used by Progress's
+ * "Workouts" weekly stat). */
+export function sessionCountForDate(localDate: string): number {
   const db = getDb();
-  const rows = db
+  return db
     .select({ id: workoutSession.id })
     .from(workoutSession)
     .where(and(eq(workoutSession.localDate, localDate), isNull(workoutSession.deletedAt)))
-    .limit(1)
-    .all();
-  return rows.length > 0;
+    .all().length;
 }

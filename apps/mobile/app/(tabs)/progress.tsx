@@ -1,8 +1,9 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { FlatList, Image, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { Button, Card, LineChart, Sparkline, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { listWeightEntries, logWeight } from '../../src/data/repositories/weightEntryRepository';
 import { retryNow, useSyncStatusStore } from '../../src/data/sync';
 import type { CheckInRow, MeasurementRow, PhotoRow, WeightEntryRow } from '../../src/data/db/schema';
@@ -12,40 +13,32 @@ import { currentWeekCheckIn, generateCheckIn, recordDecision } from '../../src/d
 import { logMeasurement, listByType } from '../../src/data/repositories/measurementRepository';
 import type { MeasurementType } from '../../src/data/repositories/measurementLogic';
 import { savePhoto, listPhotos, type Pose } from '../../src/data/repositories/photoRepository';
+import { getWeeklyProgressStats, type WeeklyProgressStats } from '../../src/data/repositories/progressStats';
 
-const TREND_WINDOW_DAYS = 30;
+const CHART_WINDOW_DAYS = 7;
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const TrendBars = memo(function TrendBars({ series }: { series: { localDate: string; trend: number }[] }) {
+/** "2026-05-08" -> "May 8" — hand-formatted rather than `Intl.DateTimeFormat` to avoid depending
+ * on full-ICU data being bundled into the Hermes build (not something this project has verified). */
+function formatChartLabel(localDate: string): string {
+  const [, month, day] = localDate.split('-');
+  return `${MONTH_SHORT[Number(month) - 1]} ${Number(day)}`;
+}
+
+/** Signed delta line with a direction arrow (reference UI mockup's "▼0.6 kg vs last week" /
+ * "▼134 kcal" style badges). Not a design-system primitive — only used in this one screen. */
+function TrendDelta({ value, formatAbs, suffix }: { value: number; formatAbs: (abs: number) => string; suffix: string }) {
   const { colors } = useTheme();
-  const window = series.slice(-TREND_WINDOW_DAYS);
-  if (window.length === 0) {
-    return (
-      <Typography variant="caption" color="secondary">
-        Log a few weigh-ins to see your trend.
-      </Typography>
-    );
-  }
-
-  const values = window.map((w) => w.trend);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-
+  const iconName = value < 0 ? 'arrow-down' : value > 0 ? 'arrow-up' : 'remove';
   return (
-    <View style={styles.trendRow}>
-      {window.map((point) => {
-        const heightPct = 0.15 + 0.85 * ((point.trend - min) / range);
-        return (
-          <View key={point.localDate} style={styles.trendBarTrack}>
-            <View
-              style={[styles.trendBarFill, { height: `${heightPct * 100}%`, backgroundColor: colors.accent }]}
-            />
-          </View>
-        );
-      })}
+    <View style={styles.deltaRow}>
+      <Ionicons name={iconName} size={14} color={colors.accent} />
+      <Typography variant="caption" color="accent">
+        {formatAbs(Math.abs(value))} {suffix}
+      </Typography>
     </View>
   );
-});
+}
 
 const MEASUREMENT_TYPES: { type: MeasurementType; label: string }[] = [
   { type: 'waist', label: 'Waist' },
@@ -309,8 +302,15 @@ export default function ProgressScreen() {
   const [weightInput, setWeightInput] = useState('');
   const [entries, setEntries] = useState<WeightEntryRow[]>(() => listWeightEntries());
   const [checkInVersion, setCheckInVersion] = useState(0);
+  // Computed alongside `entries` in the same `refresh()` this screen already calls after its own
+  // actions (logging a weigh-in, syncing) — this screen has no focus-effect refresh today, so
+  // matching that existing convention rather than introducing a new one for just this.
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyProgressStats>(() => getWeeklyProgressStats());
 
-  const refresh = () => setEntries(listWeightEntries());
+  const refresh = () => {
+    setEntries(listWeightEntries());
+    setWeeklyStats(getWeeklyProgressStats());
+  };
 
   const onSyncNow = () => {
     retryNow();
@@ -335,6 +335,15 @@ export default function ProgressScreen() {
   const weeklyRate = useMemo(() => weeklyRateFromSeries(trendSeries), [trendSeries]);
   const onCheckInDecided = useCallback(() => setCheckInVersion((v) => v + 1), []);
 
+  const chartPoints = useMemo(
+    () =>
+      trendSeries
+        .slice(-CHART_WINDOW_DAYS)
+        .map((t) => ({ label: formatChartLabel(t.localDate), value: t.trend })),
+    [trendSeries],
+  );
+  const latestTrend = trendSeries.length > 0 ? trendSeries[trendSeries.length - 1].trend : null;
+
   return (
     <FlatList
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -343,7 +352,89 @@ export default function ProgressScreen() {
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <>
-          <Typography variant="headline">Progress</Typography>
+          <View style={styles.headerRow}>
+            <Typography variant="headline">Progress</Typography>
+            <Ionicons name="calendar-outline" size={22} color={colors.textSecondary} />
+          </View>
+
+          <Card style={styles.sectionCard}>
+            <View style={styles.headerRow}>
+              <Typography variant="title">Weight</Typography>
+              <View style={[styles.rangeBadge, { backgroundColor: colors.surfaceAlt }]}>
+                <Typography variant="caption" color="secondary">
+                  7D
+                </Typography>
+              </View>
+            </View>
+            {latestTrend !== null ? (
+              <View style={styles.statRow}>
+                <Typography variant="statLarge">{latestTrend.toFixed(1)}</Typography>
+                <Typography variant="statUnit" color="secondary">
+                  {' '}
+                  kg
+                </Typography>
+              </View>
+            ) : null}
+            {weeklyRate !== null ? (
+              <TrendDelta value={weeklyRate} formatAbs={(abs) => abs.toFixed(1)} suffix="kg vs last week" />
+            ) : (
+              <Typography variant="caption" color="secondary">
+                Not enough data yet
+              </Typography>
+            )}
+            <LineChart points={chartPoints} />
+          </Card>
+
+          <Card style={styles.sectionCard}>
+            <Typography variant="title">This week</Typography>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCell}>
+                <Typography variant="title">{weeklyStats.workoutsThisWeek}</Typography>
+                <Typography variant="caption" color="secondary">
+                  Workouts
+                </Typography>
+              </View>
+              <View style={styles.statCell}>
+                <Typography variant="title">{weeklyStats.daysLoggedThisWeek}/7</Typography>
+                <Typography variant="caption" color="secondary">
+                  Days
+                </Typography>
+              </View>
+              <View style={styles.statCell}>
+                <Typography variant="title">{Math.round(weeklyStats.avgKcal)}</Typography>
+                <Typography variant="caption" color="secondary">
+                  Avg kcal
+                </Typography>
+              </View>
+              <View style={styles.statCell}>
+                <Typography variant="title">{Math.round(weeklyStats.avgProteinG)} g</Typography>
+                <Typography variant="caption" color="secondary">
+                  Avg protein
+                </Typography>
+              </View>
+            </View>
+          </Card>
+
+          <Card style={styles.sectionCard}>
+            <Typography variant="title">Nutrition trends</Typography>
+            <Typography variant="caption" color="secondary">
+              7-day average
+            </Typography>
+            <View style={styles.trendsRow}>
+              <View>
+                <Typography variant="bodyStrong">{Math.round(weeklyStats.avgKcal)} kcal</Typography>
+                <TrendDelta value={weeklyStats.kcalDeltaVsPriorWeek} formatAbs={(abs) => Math.round(abs).toString()} suffix="kcal" />
+              </View>
+              <Sparkline values={weeklyStats.dailyKcalSeries} />
+            </View>
+            <View style={styles.trendsRow}>
+              <View>
+                <Typography variant="bodyStrong">{Math.round(weeklyStats.avgProteinG)} g</Typography>
+                <TrendDelta value={weeklyStats.proteinDeltaVsPriorWeek} formatAbs={(abs) => Math.round(abs).toString()} suffix="g" />
+              </View>
+              <Sparkline values={weeklyStats.dailyProteinSeries} />
+            </View>
+          </Card>
 
           <View style={styles.row}>
             <View style={styles.flexInput}>
@@ -356,14 +447,6 @@ export default function ProgressScreen() {
             </View>
             <Button label="Log weight" onPress={onLog} />
           </View>
-
-          <Card style={styles.sectionCard}>
-            <Typography variant="title">Trend</Typography>
-            <TrendBars series={trendSeries} />
-            <Typography variant="body" color="secondary">
-              {weeklyRate !== null ? `${weeklyRate.toFixed(2)} kg/week` : 'Not enough data yet'}
-            </Typography>
-          </Card>
 
           <CheckInCard onDecided={onCheckInDecided} key={checkInVersion} />
 
@@ -422,20 +505,37 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  trendRow: {
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rangeBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  statRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+  },
+  deltaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statCell: {
+    alignItems: 'center',
     gap: 2,
-    height: 60,
   },
-  trendBarTrack: {
-    flex: 1,
-    height: '100%',
-    justifyContent: 'flex-end',
-  },
-  trendBarFill: {
-    width: '100%',
-    borderRadius: radius.sm,
+  trendsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   photoGrid: {
     flexDirection: 'row',

@@ -1,11 +1,14 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { copyYesterday, listForDate, logEntry, quickAdd } from '../../src/data/repositories/foodEntryRepository';
 import { resolvedNutritionFor, searchFoods } from '../../src/data/repositories/foodRepository';
 import { create as createSavedMeal, list as listSavedMeals } from '../../src/data/repositories/savedMealRepository';
+import { latestTargets } from '../../src/data/repositories/targetsRepository';
+import { hasSessionForDate } from '../../src/data/repositories/workoutSessionRepository';
 import type { FoodEntryRow, FoodRow, SavedMealRow } from '../../src/data/db/schema';
 import type { MealSlot } from '../../src/data/repositories/foodEntryLogic';
 import { getLocalDateString } from '../../src/platform/localDate';
@@ -20,6 +23,37 @@ const SLOTS: { slot: MealSlot; label: string }[] = [
 type AddSheet = { slot: MealSlot; mode: 'menu' | 'search' | 'quickAdd' | 'savedMeal' } | null;
 type BuilderItem = { foodId: string; name: string; servings: string };
 
+/** Thin horizontal progress bar (Food's top calorie/protein stat cards in the reference UI
+ * mockup) — plain View-in-View, matches the existing Bar pattern already used on the Today tab,
+ * kept local here since it's a two-line pattern, not worth a new shared component for. */
+function MacroBar({ value, target }: { value: number; target: number }) {
+  const { colors } = useTheme();
+  const pct = target > 0 ? Math.min(1, Math.max(0, value / target)) : 0;
+  return (
+    <View style={[styles.barTrack, { backgroundColor: colors.surfaceAlt }]}>
+      <View style={[styles.barFill, { width: `${pct * 100}%`, backgroundColor: colors.accent }]} />
+    </View>
+  );
+}
+
+/** Small outlined pill button (the "+ Add food" affordance in the reference UI mockup) — distinct
+ * from the shared `Button` component's filled primary/secondary styles, so kept local here rather
+ * than adding a third variant to the shared component for one screen's use. */
+function PillButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.pillButton, { borderColor: colors.accent }]}
+      accessibilityRole="button"
+    >
+      <Typography variant="caption" color="accent">
+        {label}
+      </Typography>
+    </Pressable>
+  );
+}
+
 /**
  * Food tab (PRD §3.4) — meals by slot, search, saved meals, copy yesterday, quick-add. Barcode
  * scanning and a full public food database are explicitly out of scope (PRD non-goals).
@@ -29,11 +63,19 @@ export default function FoodScreen() {
   const today = getLocalDateString();
 
   const [allFoods] = useState<FoodRow[]>(() => searchFoods(''));
-  const foodNameById = useCallback((id: string) => allFoods.find((f) => f.id === id)?.name ?? 'Food', [allFoods]);
+  const foodById = useCallback((id: string) => allFoods.find((f) => f.id === id), [allFoods]);
 
   const [entries, setEntries] = useState<FoodEntryRow[]>(() => listForDate(today));
   const refresh = useCallback(() => setEntries(listForDate(today)), [today]);
   useFocusEffect(refresh);
+
+  // Targets + today's training-day status, same resolution rule as todaySummary.ts (training
+  // days use the higher calorie target) — computed locally here rather than importing that
+  // screen's module, to stay inside this file per scope.
+  const targets = useMemo(() => latestTargets(), []);
+  const trainedToday = useMemo(() => hasSessionForDate(today), [today]);
+  const caloriesTarget = targets ? (trainedToday ? targets.kcalTraining : targets.kcalRest) : 0;
+  const proteinTarget = targets?.proteinG ?? 0;
 
   const [sheet, setSheet] = useState<AddSheet>(null);
   const [query, setQuery] = useState('');
@@ -65,7 +107,7 @@ export default function FoodScreen() {
   // `resolvedNutritionFor` hits SQLite (base food + override lookup) per entry — computing this
   // once per entry here, keyed only on `entries`, is what keeps typing in any of this screen's
   // text fields from re-running up to 2x N queries on every keystroke (it previously ran inline
-  // in the render body, with no memoization at all).
+  // in the render body, with no memoization at all). Preserved exactly across this redesign.
   const nutritionByEntryId = useMemo(() => {
     const map = new Map<string, { kcal: number; proteinG: number }>();
     for (const entry of entries) {
@@ -84,10 +126,42 @@ export default function FoodScreen() {
     return { kcal, proteinG };
   }, [nutritionByEntryId]);
 
+  const slotTotals = useMemo(() => {
+    const map = new Map<MealSlot, { kcal: number; proteinG: number }>();
+    for (const { slot } of SLOTS) {
+      let kcal = 0;
+      let proteinG = 0;
+      for (const entry of entries) {
+        if (entry.mealSlot !== slot) continue;
+        const n = nutritionByEntryId.get(entry.id) ?? { kcal: 0, proteinG: 0 };
+        kcal += n.kcal;
+        proteinG += n.proteinG;
+      }
+      map.set(slot, { kcal, proteinG });
+    }
+    return map;
+  }, [entries, nutritionByEntryId]);
+
   const entryName = (entry: FoodEntryRow): string =>
-    entry.foodId ? foodNameById(entry.foodId) : (entry.quickAddName ?? 'Quick add');
+    entry.foodId ? (foodById(entry.foodId)?.name ?? 'Food') : (entry.quickAddName ?? 'Quick add');
+
+  const entrySubtitle = (entry: FoodEntryRow): string => {
+    if (entry.foodId) {
+      const unit = foodById(entry.foodId)?.servingUnit;
+      return unit ? `${entry.servings} ${unit}` : `${entry.servings} serving${entry.servings === 1 ? '' : 's'}`;
+    }
+    return 'Quick add';
+  };
 
   const openMenu = (slot: MealSlot) => setSheet({ slot, mode: 'menu' });
+
+  /** Top-right global "+" button: defaults to the first meal slot with nothing logged yet today,
+   * falling back to Snacks (a reasonable catch-all) once every slot has something — avoids
+   * duplicating the whole add flow a second time for a single extra entry point. */
+  const onGlobalAdd = () => {
+    const emptySlot = SLOTS.find(({ slot }) => !entries.some((e) => e.mealSlot === slot));
+    openMenu(emptySlot?.slot ?? 'snacks');
+  };
 
   const openSearch = () => {
     if (!sheet) return;
@@ -179,12 +253,41 @@ export default function FoodScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <Typography variant="headline">Food</Typography>
-      <Card style={styles.totalsCard}>
-        <Typography variant="bodyStrong">
-          {Math.round(totals.kcal)} kcal · {Math.round(totals.proteinG)} g protein today
-        </Typography>
-      </Card>
+      <View style={styles.header}>
+        <Typography variant="headline">Food</Typography>
+        <Pressable onPress={onGlobalAdd} accessibilityRole="button" accessibilityLabel="Quick add food">
+          <Ionicons name="add-circle" size={36} color={colors.accent} />
+        </Pressable>
+      </View>
+
+      <View style={styles.statRow}>
+        <Card style={styles.statCard}>
+          <Typography variant="caption" color="secondary">
+            Calories
+          </Typography>
+          <View style={styles.statValueRow}>
+            <Typography variant="statLarge">{Math.round(totals.kcal).toLocaleString()}</Typography>
+            <Typography variant="statUnit" color="secondary">
+              {' '}
+              / {Math.round(caloriesTarget).toLocaleString()} kcal
+            </Typography>
+          </View>
+          <MacroBar value={totals.kcal} target={caloriesTarget} />
+        </Card>
+        <Card style={styles.statCard}>
+          <Typography variant="caption" color="secondary">
+            Protein
+          </Typography>
+          <View style={styles.statValueRow}>
+            <Typography variant="statLarge">{Math.round(totals.proteinG)}</Typography>
+            <Typography variant="statUnit" color="secondary">
+              {' '}
+              / {Math.round(proteinTarget)} g
+            </Typography>
+          </View>
+          <MacroBar value={totals.proteinG} target={proteinTarget} />
+        </Card>
+      </View>
 
       <View style={styles.row}>
         <Button variant="secondary" label="Copy yesterday" onPress={onCopyYesterday} />
@@ -193,11 +296,19 @@ export default function FoodScreen() {
 
       {SLOTS.map(({ slot, label }) => {
         const slotEntries = entries.filter((e) => e.mealSlot === slot);
+        const slotTotal = slotTotals.get(slot) ?? { kcal: 0, proteinG: 0 };
         return (
           <Card key={slot} style={styles.slotCard}>
-            <View style={styles.row}>
-              <Typography variant="title">{label}</Typography>
-              <Button label="Add" onPress={() => openMenu(slot)} />
+            <View style={styles.slotHeaderRow}>
+              <View>
+                <Typography variant="title">{label}</Typography>
+                {slotEntries.length > 0 ? (
+                  <Typography variant="caption" color="secondary">
+                    {Math.round(slotTotal.kcal)} kcal · {Math.round(slotTotal.proteinG)} g protein
+                  </Typography>
+                ) : null}
+              </View>
+              <PillButton label="+ Add food" onPress={() => openMenu(slot)} />
             </View>
             {slotEntries.length === 0 ? (
               <Typography variant="caption" color="secondary">
@@ -208,10 +319,26 @@ export default function FoodScreen() {
                 const n = nutritionByEntryId.get(entry.id) ?? { kcal: 0, proteinG: 0 };
                 return (
                   <View key={entry.id} style={[styles.entryRow, { borderBottomColor: colors.border }]}>
-                    <Typography variant="body">{entryName(entry)}</Typography>
+                    <View style={[styles.iconBadge, { backgroundColor: colors.surfaceAlt }]}>
+                      <Ionicons name="nutrition-outline" size={18} color={colors.accent} />
+                    </View>
+                    <View style={styles.entryTextCol}>
+                      <Typography variant="body">{entryName(entry)}</Typography>
+                      <Typography variant="caption" color="secondary">
+                        {entrySubtitle(entry)}
+                      </Typography>
+                    </View>
                     <Typography variant="body" color="secondary">
                       {Math.round(n.kcal)} kcal
                     </Typography>
+                    {/* Decorative for now — no per-entry edit/delete exists in foodEntryRepository
+                        yet, and adding one is outside this screen-only redesign's scope. */}
+                    <Ionicons
+                      name="ellipsis-vertical"
+                      size={16}
+                      color={colors.textSecondary}
+                      style={styles.entryOverflow}
+                    />
                   </View>
                 );
               })
@@ -338,15 +465,37 @@ export default function FoodScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.sm },
-  totalsCard: { gap: spacing.xs },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  statRow: { flexDirection: 'row', gap: spacing.sm },
+  statCard: { flex: 1, gap: spacing.xs },
+  statValueRow: { flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap' },
+  barTrack: { height: 6, borderRadius: radius.sm, overflow: 'hidden', marginTop: spacing.xs },
+  barFill: { height: '100%' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
   slotCard: { gap: spacing.xs },
+  slotHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  pillButton: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
   entryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.sm,
     paddingVertical: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  iconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  entryTextCol: { flex: 1 },
+  entryOverflow: { paddingHorizontal: spacing.xs },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalCard: { borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, gap: spacing.sm, maxHeight: '85%' },
   modalList: { maxHeight: 300 },

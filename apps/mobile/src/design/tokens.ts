@@ -19,6 +19,10 @@ export const typeScale = {
   bodyStrong: { fontSize: 16, lineHeight: 22, fontWeight: '600' as const },
   title: { fontSize: 20, lineHeight: 26, fontWeight: '700' as const },
   headline: { fontSize: 28, lineHeight: 34, fontWeight: '700' as const },
+  /** Big stat numbers (e.g. "1,247", "72.4") — matches the reference UI mockup. */
+  statLarge: { fontSize: 32, lineHeight: 38, fontWeight: '700' as const },
+  /** The smaller unit/suffix next to a stat (e.g. "kcal", "kg") — pair with color="secondary". */
+  statUnit: { fontSize: 14, lineHeight: 18, fontWeight: '400' as const },
 };
 
 const lightColors = {
@@ -35,18 +39,19 @@ const lightColors = {
   success: '#1E6B52',
 };
 
+/** Matches the reference UI mockup exactly — near-black with a vivid emerald accent. */
 const darkColors = {
-  background: '#101214',
-  surface: '#1A1D20',
-  surfaceAlt: '#24282C',
-  border: '#33383D',
-  textPrimary: '#F2F3F4',
-  textSecondary: '#A6ACB3',
-  accent: '#4FBF95',
-  accentOn: '#0B1210',
+  background: '#0B0F0D',
+  surface: '#141A17',
+  surfaceAlt: '#1E2622',
+  border: '#232B27',
+  textPrimary: '#F5F7F5',
+  textSecondary: '#8C958F',
+  accent: '#22C55E',
+  accentOn: '#0B1F15',
   danger: '#FF8A80',
   warning: '#E8B339',
-  success: '#4FBF95',
+  success: '#22C55E',
 };
 
 export const palettes = {
