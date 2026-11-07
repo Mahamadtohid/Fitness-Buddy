@@ -17,7 +17,7 @@ type AuthState = {
   /** Loads a persisted session on app start; call once from the root layout. */
   bootstrap: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  registerAndLogin: (email: string, password: string, inviteCode: string) => Promise<void>;
+  registerAndLogin: (email: string, password: string, inviteCode: string, fullName?: string) => Promise<void>;
   logout: () => Promise<void>;
   /** Used by the sync engine on a 401; returns false (and logs out) if the refresh token is dead. */
   refreshSilently: () => Promise<boolean>;
@@ -77,8 +77,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     applySession(set, auth, email);
   },
 
-  registerAndLogin: async (email, password, inviteCode) => {
-    await client.register(email, password, inviteCode);
+  registerAndLogin: async (email, password, inviteCode, fullName) => {
+    await client.register(email, password, inviteCode, fullName);
     const auth = await client.login(email, password);
     await setSecureItem(REFRESH_TOKEN_KEY, auth.refreshToken);
     await setSecureItem(USER_EMAIL_KEY, email);
