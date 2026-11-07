@@ -40,7 +40,7 @@ public static class AuthEndpoints
         }
 
         var now = DateTimeOffset.UtcNow;
-        var invite = await db.InviteCodes.SingleOrDefaultAsync(i => i.Code == request.InviteCode, ct);
+        var invite = await db.InviteCodes.AsNoTracking().SingleOrDefaultAsync(i => i.Code == request.InviteCode, ct);
         if (invite is null || !invite.IsUsable(now))
         {
             return Results.Problem(
@@ -61,9 +61,24 @@ public static class AuthEndpoints
                 createResult.Errors.ToDictionary(e => e.Code, e => new[] { e.Description }));
         }
 
-        invite.UsedBy = user.Id;
-        invite.UsedAt = now;
-        await db.SaveChangesAsync(ct);
+        // Claim the invite atomically, re-checking "still unused and unexpired" right at the
+        // database, instead of trusting the read above — two concurrent registrations with the
+        // same code could otherwise both pass that read and both create an account. If this
+        // claim loses the race, the invite was used by someone else between our read and here,
+        // so this account must not be allowed to stand on an already-spent invite.
+        var claimed = await db.InviteCodes
+            .Where(i => i.Code == request.InviteCode && i.UsedBy == null && i.ExpiresAt > now)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(i => i.UsedBy, user.Id)
+                .SetProperty(i => i.UsedAt, now), ct);
+
+        if (claimed == 0)
+        {
+            await userManager.DeleteAsync(user);
+            return Results.Problem(
+                title: "Invalid or expired invite code.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
 
         return Results.Created($"/api/v1/auth/users/{user.Id}", new { user.Id, user.Email });
     }
@@ -178,7 +193,15 @@ public static class AuthEndpoints
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user is null)
         {
-            return Results.Problem(title: "Invalid request.", statusCode: StatusCodes.Status400BadRequest);
+            // Same response shape as an invalid-token failure below (ValidationProblem with an
+            // "errors" dict), not a plain Problem — otherwise the two cases are distinguishable by
+            // response shape alone, letting this endpoint be used to enumerate accounts (c.f.
+            // ForgotPassword's always-204 response, which this endpoint can't fully match since a
+            // real reset attempt has to report whether it actually succeeded).
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["Token"] = ["Invalid token."],
+            });
         }
 
         var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);

@@ -1,4 +1,4 @@
-import { eq, isNull } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import { getDb } from '../db/client';
 import { outbox, setEntry, workoutSession, type SetEntryRow, type WorkoutSessionRow } from '../db/schema';
@@ -51,11 +51,15 @@ export function historyForExercise(
     (row) => row.completed === 1 && row.isWarmup === 0 && row.deletedAt === null,
   ) as SetEntryRow[];
 
-  const sessions = db
-    .select()
-    .from(workoutSession)
-    .where(isNull(workoutSession.deletedAt))
-    .all() as WorkoutSessionRow[];
+  const sessionIds = [...new Set(sets.map((set) => set.sessionId))];
+  const sessions = sessionIds.length
+    ? (db
+        .select()
+        .from(workoutSession)
+        .where(inArray(workoutSession.id, sessionIds))
+        .all()
+        .filter((session) => session.deletedAt === null) as WorkoutSessionRow[])
+    : [];
   const sessionById = new Map(sessions.map((session) => [session.id, session]));
 
   return sets

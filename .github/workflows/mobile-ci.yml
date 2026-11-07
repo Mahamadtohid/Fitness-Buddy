@@ -17,6 +17,13 @@ defaults:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # localDate.test.ts needs a non-UTC zone to exercise its early-morning-local-time case, and
+      # mutating process.env.TZ at runtime (inside beforeAll) is not reliable across Node/ICU
+      # builds — some cache the host timezone at process start regardless of a later mutation,
+      # which is exactly what made this test fail here before while passing on a contributor's own
+      # machine. Setting TZ before the process starts makes it reliable everywhere, CI included.
+      TZ: Asia/Kolkata
     steps:
       - uses: actions/checkout@v4
 

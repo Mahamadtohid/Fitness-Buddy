@@ -116,7 +116,9 @@ export default function ActiveWorkoutScreen() {
     const reps = Number(row.reps);
     if (!Number.isFinite(weightKg) || weightKg <= 0 || !Number.isFinite(reps) || reps <= 0) return;
 
-    logSet(sessionId, exerciseId, index + 1, weightKg, reps, { isWarmup: false, rpe: Number(row.rpe) || null });
+    const rpeValue = row.rpe.trim() === '' ? null : Number(row.rpe);
+    const rpe = rpeValue !== null && Number.isFinite(rpeValue) ? rpeValue : null;
+    logSet(sessionId, exerciseId, index + 1, weightKg, reps, { isWarmup: false, rpe });
     updateSet(exerciseId, index, { confirmed: true });
 
     const exercise = exerciseFor(exerciseId);

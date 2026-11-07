@@ -12,6 +12,7 @@ type Props = {
   points: LineChartPoint[];
   height?: number;
   color?: string;
+  emptyMessage?: string;
 };
 
 /**
@@ -22,14 +23,14 @@ type Props = {
  * actual line rather than bars. Assumes evenly-spaced points (true for the weekly series this is
  * built for) so labels can be laid out with plain flexbox instead of precise SVG text positioning.
  */
-export function LineChart({ points, height = 120, color }: Props) {
+export function LineChart({ points, height = 120, color, emptyMessage }: Props) {
   const { colors } = useTheme();
   const lineColor = color ?? colors.accent;
 
   if (points.length === 0) {
     return (
       <Typography variant="caption" color="secondary">
-        Log a few weigh-ins to see your trend.
+        {emptyMessage ?? 'Log a few weigh-ins to see your trend.'}
       </Typography>
     );
   }

@@ -10,10 +10,17 @@ const OPTIONS: { value: Units; label: string }[] = [
   { value: 'imperial', label: 'Imperial' },
 ];
 
+type Props = {
+  /** Notifies a parent right after a successful units change (in addition to this component's
+   * own self-contained state update) so a screen that holds its own stale `profile` copy (e.g.
+   * Settings) can re-sync. Optional — this component manages its own state regardless. */
+  onChanged?: () => void;
+};
+
 /** Body-metrics units toggle (kg/cm vs lb/in) — storage stays metric either way; this only
  * changes how height/weight/measurements are displayed and entered elsewhere in the app. Not
  * wired into any screen here — the caller places it (e.g. Settings). */
-export function UnitsSection() {
+export function UnitsSection({ onChanged }: Props) {
   const [profile, setProfile] = useState(() => getProfile());
 
   if (!profile) return null;
@@ -30,6 +37,7 @@ export function UnitsSection() {
       timeZone: profile.timeZone,
     });
     setProfile(getProfile());
+    onChanged?.();
   };
 
   return (

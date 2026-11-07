@@ -22,6 +22,7 @@ export function WaterReminderSettingsSection() {
   const [settings, setSettings] = useState(() => getSettings());
   const [wakeHourInput, setWakeHourInput] = useState(String(settings.wakeHour));
   const [sleepHourInput, setSleepHourInput] = useState(String(settings.sleepHour));
+  const [hoursError, setHoursError] = useState<string | null>(null);
 
   const persist = (next: { enabled: boolean; wakeHour: number; sleepHour: number }) => {
     saveSettings(next);
@@ -39,7 +40,14 @@ export function WaterReminderSettingsSection() {
       setWakeHourInput(String(settings.wakeHour));
       return;
     }
-    persist({ enabled: settings.enabled, wakeHour: Math.round(wakeHour), sleepHour: settings.sleepHour });
+    const rounded = Math.round(wakeHour);
+    if (rounded >= settings.sleepHour) {
+      setWakeHourInput(String(settings.wakeHour));
+      setHoursError('Wake hour must be earlier than sleep hour.');
+      return;
+    }
+    setHoursError(null);
+    persist({ enabled: settings.enabled, wakeHour: rounded, sleepHour: settings.sleepHour });
   };
 
   const onSleepHourBlur = () => {
@@ -48,7 +56,14 @@ export function WaterReminderSettingsSection() {
       setSleepHourInput(String(settings.sleepHour));
       return;
     }
-    persist({ enabled: settings.enabled, wakeHour: settings.wakeHour, sleepHour: Math.round(sleepHour) });
+    const rounded = Math.round(sleepHour);
+    if (settings.wakeHour >= rounded) {
+      setSleepHourInput(String(settings.sleepHour));
+      setHoursError('Sleep hour must be later than wake hour.');
+      return;
+    }
+    setHoursError(null);
+    persist({ enabled: settings.enabled, wakeHour: settings.wakeHour, sleepHour: rounded });
   };
 
   return (
@@ -81,6 +96,11 @@ export function WaterReminderSettingsSection() {
         onBlur={onSleepHourBlur}
         keyboardType="number-pad"
       />
+      {hoursError ? (
+        <Typography variant="caption" color="danger">
+          {hoursError}
+        </Typography>
+      ) : null}
     </Card>
   );
 }

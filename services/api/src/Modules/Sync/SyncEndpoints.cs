@@ -16,6 +16,10 @@ public static class SyncEndpoints
     private const int DefaultPullLimit = 200;
     private const int MaxPullLimit = 200;
 
+    /// <summary>Marker type for <see cref="ILogger{TCategoryName}"/> — <see cref="SyncEndpoints"/>
+    /// itself is static and can't be used as a generic type argument.</summary>
+    private sealed class LogCategory;
+
     public static void MapSyncEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/sync").RequireAuthorization().RequireRateLimiting("sync");
@@ -29,6 +33,7 @@ public static class SyncEndpoints
         AppDbContext db,
         ICurrentUser currentUser,
         IServerSequence serverSequence,
+        ILogger<LogCategory> logger,
         CancellationToken ct)
     {
         var results = new List<SyncOpResultDto>(request.Ops.Count);
@@ -52,8 +57,14 @@ public static class SyncEndpoints
         var touchedMeasurements = new Dictionary<Guid, Measurement>();
         var touchedCheckIns = new Dictionary<DateOnly, CheckIn>();
 
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-
+        // Each op gets its own SaveChanges (and so, implicitly, its own transaction) rather than
+        // one shared transaction for the whole batch. Previously, an unhandled exception from any
+        // single op (a malformed payload field, or a cross-user RecordId collision slipping past
+        // the per-user query filter and hitting the primary key at save time) rolled back every
+        // other op already processed earlier in the same batch and was never recorded as
+        // "rejected" — so a client that retried the same batch (normal outbox behavior) got stuck
+        // forever on that one poison op, blocking all its other pending syncs too. Isolating each
+        // op means a bad one is rejected on its own, and every good op in the batch still lands.
         foreach (var op in request.Ops)
         {
             var processed = await db.ProcessedOps.FindAsync([op.OpId, currentUser.UserId], ct);
@@ -63,40 +74,62 @@ public static class SyncEndpoints
                 continue;
             }
 
-            (string Status, string? Reason, object? ServerCopy) outcome = op.Entity switch
+            (string Status, string? Reason, object? ServerCopy) outcome;
+            try
             {
-                "weight_entry" => await ApplyWeightEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedWeightEntries, ct),
-                "custom_exercise" => await ApplyCustomExerciseAsync(op, currentUser.UserId, now, db, serverSequence, touchedCustomExercises, ct),
-                "workout_template" => await ApplyWorkoutTemplateAsync(op, currentUser.UserId, now, db, serverSequence, touchedWorkoutTemplates, ct),
-                "schedule" => await ApplyScheduleEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedScheduleEntries, ct),
-                "workout_session" => await ApplyWorkoutSessionAsync(op, currentUser.UserId, now, db, serverSequence, touchedWorkoutSessions, ct),
-                "set_entry" => await ApplySetEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedSetEntries, ct),
-                "profile" => await ApplyUserProfileAsync(op, currentUser.UserId, now, db, serverSequence, touchedUserProfiles, ct),
-                "targets" => await ApplyTargetAsync(op, currentUser.UserId, now, db, serverSequence, touchedTargets, ct),
-                "custom_food" => await ApplyCustomFoodAsync(op, currentUser.UserId, now, db, serverSequence, touchedCustomFoods, ct),
-                "food_override" => await ApplyFoodOverrideAsync(op, currentUser.UserId, now, db, serverSequence, touchedFoodOverrides, ct),
-                "saved_meal" => await ApplySavedMealAsync(op, currentUser.UserId, now, db, serverSequence, touchedSavedMeals, ct),
-                "food_entry" => await ApplyFoodEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedFoodEntries, ct),
-                "water_entry" => await ApplyWaterEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedWaterEntries, ct),
-                "measurement" => await ApplyMeasurementAsync(op, currentUser.UserId, now, db, serverSequence, touchedMeasurements, ct),
-                "check_in" => await ApplyCheckInAsync(op, currentUser.UserId, now, db, serverSequence, touchedCheckIns, ct),
-                _ => ("rejected", "entity not supported yet", null),
-            };
+                outcome = op.Entity switch
+                {
+                    "weight_entry" => await ApplyWeightEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedWeightEntries, ct),
+                    "custom_exercise" => await ApplyCustomExerciseAsync(op, currentUser.UserId, now, db, serverSequence, touchedCustomExercises, ct),
+                    "workout_template" => await ApplyWorkoutTemplateAsync(op, currentUser.UserId, now, db, serverSequence, touchedWorkoutTemplates, ct),
+                    "schedule" => await ApplyScheduleEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedScheduleEntries, ct),
+                    "workout_session" => await ApplyWorkoutSessionAsync(op, currentUser.UserId, now, db, serverSequence, touchedWorkoutSessions, ct),
+                    "set_entry" => await ApplySetEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedSetEntries, ct),
+                    "profile" => await ApplyUserProfileAsync(op, currentUser.UserId, now, db, serverSequence, touchedUserProfiles, ct),
+                    "targets" => await ApplyTargetAsync(op, currentUser.UserId, now, db, serverSequence, touchedTargets, ct),
+                    "custom_food" => await ApplyCustomFoodAsync(op, currentUser.UserId, now, db, serverSequence, touchedCustomFoods, ct),
+                    "food_override" => await ApplyFoodOverrideAsync(op, currentUser.UserId, now, db, serverSequence, touchedFoodOverrides, ct),
+                    "saved_meal" => await ApplySavedMealAsync(op, currentUser.UserId, now, db, serverSequence, touchedSavedMeals, ct),
+                    "food_entry" => await ApplyFoodEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedFoodEntries, ct),
+                    "water_entry" => await ApplyWaterEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedWaterEntries, ct),
+                    "measurement" => await ApplyMeasurementAsync(op, currentUser.UserId, now, db, serverSequence, touchedMeasurements, ct),
+                    "check_in" => await ApplyCheckInAsync(op, currentUser.UserId, now, db, serverSequence, touchedCheckIns, ct),
+                    _ => ("rejected", "entity not supported yet", null),
+                };
 
-            db.ProcessedOps.Add(new ProcessedOp
+                db.ProcessedOps.Add(new ProcessedOp
+                {
+                    OpId = op.OpId,
+                    UserId = currentUser.UserId,
+                    Status = outcome.Status,
+                    Reason = outcome.Reason,
+                    CreatedAt = now,
+                });
+
+                await db.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
             {
-                OpId = op.OpId,
-                UserId = currentUser.UserId,
-                Status = outcome.Status,
-                Reason = outcome.Reason,
-                CreatedAt = now,
-            });
+                logger.LogError(ex, "Sync push op {OpId} ({Entity}) failed and was rejected", op.OpId, op.Entity);
+
+                // Discard whatever this op tracked (the failed insert/update, and the ProcessedOp
+                // added just above if we got that far) so it can't bleed into the next op's save.
+                db.ChangeTracker.Clear();
+
+                outcome = ("rejected", "could not apply this operation", null);
+                db.ProcessedOps.Add(new ProcessedOp
+                {
+                    OpId = op.OpId,
+                    UserId = currentUser.UserId,
+                    Status = outcome.Status,
+                    Reason = outcome.Reason,
+                    CreatedAt = now,
+                });
+                await db.SaveChangesAsync(ct);
+            }
 
             results.Add(new SyncOpResultDto(op.OpId, outcome.Status, outcome.Reason, outcome.ServerCopy));
         }
-
-        await db.SaveChangesAsync(ct);
-        await transaction.CommitAsync(ct);
 
         return Results.Ok(new SyncPushResponse(results));
     }

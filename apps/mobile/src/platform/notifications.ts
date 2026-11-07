@@ -92,22 +92,33 @@ export async function rescheduleWaterReminders(): Promise<void> {
   const newIds: string[] = [];
   let slot = now > wakeToday ? new Date(now) : new Date(wakeToday);
 
-  while (slot.getTime() <= sleepToday.getTime()) {
-    if (slot.getTime() > now.getTime()) {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Drink water',
-          body: 'Stay on track with your water goal.',
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: new Date(slot),
-        },
-      });
-      newIds.push(id);
+  try {
+    while (slot.getTime() <= sleepToday.getTime()) {
+      if (slot.getTime() > now.getTime()) {
+        try {
+          const id = await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'Drink water',
+              body: 'Stay on track with your water goal.',
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DATE,
+              date: new Date(slot),
+            },
+          });
+          newIds.push(id);
+        } catch {
+          // Best-effort — matches this file's existing error-swallowing style: if the OS fails to
+          // schedule one slot (e.g. a revoked permission or channel issue), skip it and keep
+          // scheduling the remaining slots rather than aborting the whole reschedule.
+        }
+      }
+      slot = new Date(slot.getTime() + WATER_REMINDER_INTERVAL_HOURS * 60 * 60 * 1000);
     }
-    slot = new Date(slot.getTime() + WATER_REMINDER_INTERVAL_HOURS * 60 * 60 * 1000);
+  } finally {
+    // Always persist whatever subset of newIds was actually scheduled with the OS — even if
+    // something above still somehow throws — so a later reschedule can find and cancel them
+    // instead of leaking them as permanently orphaned notifications.
+    saveScheduledNotificationIds(newIds);
   }
-
-  saveScheduledNotificationIds(newIds);
 }
