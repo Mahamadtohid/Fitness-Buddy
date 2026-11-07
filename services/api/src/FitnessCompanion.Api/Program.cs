@@ -100,6 +100,8 @@ builder.Services.AddScoped<ISyncPullSource, FoodOverridePullSource>();
 builder.Services.AddScoped<ISyncPullSource, SavedMealPullSource>();
 builder.Services.AddScoped<ISyncPullSource, FoodEntryPullSource>();
 builder.Services.AddScoped<ISyncPullSource, WaterEntryPullSource>();
+builder.Services.AddScoped<ISyncPullSource, MeasurementPullSource>();
+builder.Services.AddScoped<ISyncPullSource, CheckInPullSource>();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

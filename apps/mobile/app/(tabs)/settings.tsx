@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
 
 import { Button, Card, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { getProfile, saveProfile } from '../../src/data/repositories/profileRepository';
@@ -10,6 +12,14 @@ import { calculateMacroTargets } from '../../src/domain/macros';
 import { useAuthStore } from '../../src/features/account/useAuthStore';
 import type { ProfileRow, TargetRow } from '../../src/data/db/schema';
 import { getLocalDateString } from '../../src/platform/localDate';
+import {
+  availableExportTableNames,
+  exportTableToCsv,
+  exportToJson,
+  PHOTO_EXPORT_NOTE,
+} from '../../src/data/export/exportData';
+import { writeAndShareFile } from '../../src/data/export/fileSharing';
+import { importFromJson } from '../../src/data/export/importData';
 
 type Goal = 'lose' | 'maintain' | 'gain';
 
@@ -38,6 +48,8 @@ export default function SettingsScreen() {
   const [overrideFat, setOverrideFat] = useState('');
   const [overrideCarb, setOverrideCarb] = useState('');
   const [overrideWater, setOverrideWater] = useState('');
+  const [csvTable, setCsvTable] = useState(availableExportTableNames()[0] ?? '');
+  const [importMessage, setImportMessage] = useState<string | null>(null);
 
   const onRecalculate = () => {
     if (!profile) return;
@@ -120,6 +132,31 @@ export default function SettingsScreen() {
     // (auth)/welcome as soon as `status` flips to 'unauthenticated'.
   };
 
+  const onExportJson = async () => {
+    const json = exportToJson();
+    await writeAndShareFile(`fitness-companion-export-${getLocalDateString()}.json`, JSON.stringify(json, null, 2));
+  };
+
+  const onExportCsv = async () => {
+    if (!csvTable) return;
+    const csv = exportTableToCsv(csvTable);
+    await writeAndShareFile(`${csvTable}-${getLocalDateString()}.csv`, csv);
+  };
+
+  const onImport = async () => {
+    setImportMessage(null);
+    const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    try {
+      const json = await new File(result.assets[0].uri).json();
+      importFromJson(json);
+      setImportMessage('Import complete.');
+    } catch {
+      setImportMessage('That file could not be read as a valid export — import skipped.');
+    }
+  };
+
   if (!profile) {
     return (
       <View style={[styles.container, styles.emptyPadding, { backgroundColor: colors.background }]}>
@@ -173,6 +210,38 @@ export default function SettingsScreen() {
         <TextField label="Carbs (g)" value={overrideCarb} onChangeText={setOverrideCarb} keyboardType="number-pad" />
         <TextField label="Water (ml)" value={overrideWater} onChangeText={setOverrideWater} keyboardType="number-pad" />
         <Button label="Save override" onPress={onManualOverride} />
+      </Card>
+
+      <Card style={styles.card}>
+        <Typography variant="title">Export data</Typography>
+        <Typography variant="caption" color="secondary">
+          {PHOTO_EXPORT_NOTE}
+        </Typography>
+        <Button label="Export all data (JSON)" onPress={onExportJson} />
+        <View style={styles.row}>
+          {availableExportTableNames().map((name) => (
+            <Button
+              key={name}
+              label={name}
+              variant={csvTable === name ? 'primary' : 'secondary'}
+              onPress={() => setCsvTable(name)}
+            />
+          ))}
+        </View>
+        <Button variant="secondary" label={`Export ${csvTable || '—'} (CSV)`} onPress={onExportCsv} disabled={!csvTable} />
+      </Card>
+
+      <Card style={styles.card}>
+        <Typography variant="title">Import data</Typography>
+        <Typography variant="caption" color="secondary">
+          Restores a previously exported JSON file. Rows that already exist locally are skipped.
+        </Typography>
+        <Button variant="secondary" label="Choose file to import" onPress={onImport} />
+        {importMessage ? (
+          <Typography variant="caption" color="secondary">
+            {importMessage}
+          </Typography>
+        ) : null}
       </Card>
 
       <Button variant="secondary" label="Log out" onPress={onLogout} />

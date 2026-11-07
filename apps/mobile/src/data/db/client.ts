@@ -234,6 +234,40 @@ CREATE TABLE IF NOT EXISTS water_entry (
   server_seq INTEGER NOT NULL DEFAULT 0,
   deleted_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS measurement (
+  id TEXT PRIMARY KEY NOT NULL,
+  local_date TEXT NOT NULL,
+  type TEXT NOT NULL,
+  value_cm REAL NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS check_in (
+  id TEXT PRIMARY KEY NOT NULL,
+  week_start TEXT NOT NULL UNIQUE,
+  trend_change REAL NOT NULL,
+  suggested_kcal REAL NOT NULL,
+  decision TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  client_updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0,
+  server_seq INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS photo (
+  id TEXT PRIMARY KEY NOT NULL,
+  local_date TEXT NOT NULL,
+  pose TEXT NOT NULL,
+  file_path TEXT NOT NULL
+);
 `;
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;

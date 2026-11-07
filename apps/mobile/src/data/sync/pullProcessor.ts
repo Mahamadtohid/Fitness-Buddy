@@ -2,10 +2,12 @@ import { eq } from 'drizzle-orm';
 
 import { SYNC_STATE_SINGLETON_ID, getDb } from '../db/client';
 import {
+  checkIn,
   exercise,
   food,
   foodEntry,
   foodOverride,
+  measurement,
   outbox,
   profile,
   savedMeal,
@@ -17,10 +19,12 @@ import {
   weightEntry,
   workoutSession,
   workoutTemplate,
+  type CheckInRow,
   type ExerciseRow,
   type FoodEntryRow,
   type FoodOverrideRow,
   type FoodRow,
+  type MeasurementRow,
   type ProfileRow,
   type SavedMealRow,
   type ScheduleEntryRow,
@@ -33,10 +37,12 @@ import {
 } from '../db/schema';
 import { authorizedClient } from './authorizedClient';
 import {
+  decideCheckInPullApply,
   decideCustomExercisePullApply,
   decideCustomFoodPullApply,
   decideFoodEntryPullApply,
   decideFoodOverridePullApply,
+  decideMeasurementPullApply,
   decidePullApply,
   decideProfilePullApply,
   decideSavedMealPullApply,
@@ -172,6 +178,24 @@ function applyItem(db: ReturnType<typeof getDb>, item: PulledItem, now: string):
       if (decision.action === 'noop') return;
       if (existing) db.update(waterEntry).set(decision.entry).where(eq(waterEntry.id, item.recordId)).run();
       else db.insert(waterEntry).values(decision.entry).run();
+      return;
+    }
+    case 'measurement': {
+      const existing = (db.select().from(measurement).where(eq(measurement.id, item.recordId)).all()[0] ??
+        null) as MeasurementRow | null;
+      const decision = decideMeasurementPullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(measurement).set(decision.entry).where(eq(measurement.id, item.recordId)).run();
+      else db.insert(measurement).values(decision.entry).run();
+      return;
+    }
+    case 'check_in': {
+      const existing = (db.select().from(checkIn).where(eq(checkIn.id, item.recordId)).all()[0] ??
+        null) as CheckInRow | null;
+      const decision = decideCheckInPullApply({ item, existing, hasPendingOutbox, now });
+      if (decision.action === 'noop') return;
+      if (existing) db.update(checkIn).set(decision.entry).where(eq(checkIn.id, item.recordId)).run();
+      else db.insert(checkIn).values(decision.entry).run();
       return;
     }
     default:

@@ -321,3 +321,48 @@ public sealed class WaterEntryPullSource(AppDbContext db) : ISyncPullSource
         clientUpdatedAt = w.ClientUpdatedAt,
     };
 }
+
+public sealed class MeasurementPullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.Measurements
+            .Where(m => m.ServerSeq > cursorExclusive)
+            .OrderBy(m => m.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(m => new SyncPullItemDto("measurement", m.Id, m.ServerSeq, m.Version, ToPayload(m), m.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(Measurement m) => new
+    {
+        localDate = m.LocalDate.ToString("yyyy-MM-dd"),
+        type = m.Type,
+        valueCm = m.ValueCm,
+        clientUpdatedAt = m.ClientUpdatedAt,
+    };
+}
+
+public sealed class CheckInPullSource(AppDbContext db) : ISyncPullSource
+{
+    public async Task<List<SyncPullItemDto>> FetchSinceAsync(long cursorExclusive, int limit, CancellationToken ct)
+    {
+        var rows = await db.CheckIns
+            .Where(c => c.ServerSeq > cursorExclusive)
+            .OrderBy(c => c.ServerSeq)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return rows.Select(c => new SyncPullItemDto("check_in", c.Id, c.ServerSeq, c.Version, ToPayload(c), c.DeletedAt)).ToList();
+    }
+
+    private static object ToPayload(CheckIn c) => new
+    {
+        weekStart = c.WeekStart.ToString("yyyy-MM-dd"),
+        trendChange = c.TrendChange,
+        suggestedKcal = c.SuggestedKcal,
+        decision = c.Decision,
+        clientUpdatedAt = c.ClientUpdatedAt,
+    };
+}

@@ -34,6 +34,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
     public DbSet<SavedMeal> SavedMeals => Set<SavedMeal>();
     public DbSet<FoodEntry> FoodEntries => Set<FoodEntry>();
     public DbSet<WaterEntry> WaterEntries => Set<WaterEntry>();
+    public DbSet<Measurement> Measurements => Set<Measurement>();
+    public DbSet<CheckIn> CheckIns => Set<CheckIn>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -81,6 +83,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         builder.Entity<FoodOverride>(e =>
         {
             e.HasIndex(f => new { f.UserId, f.FoodId })
+                .IsUnique()
+                .HasFilter("\"DeletedAt\" IS NULL");
+        });
+
+        builder.Entity<CheckIn>(e =>
+        {
+            e.HasIndex(c => new { c.UserId, c.WeekStart })
                 .IsUnique()
                 .HasFilter("\"DeletedAt\" IS NULL");
         });

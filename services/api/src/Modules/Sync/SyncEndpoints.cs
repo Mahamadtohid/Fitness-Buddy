@@ -49,6 +49,8 @@ public static class SyncEndpoints
         var touchedSavedMeals = new Dictionary<Guid, SavedMeal>();
         var touchedFoodEntries = new Dictionary<Guid, FoodEntry>();
         var touchedWaterEntries = new Dictionary<Guid, WaterEntry>();
+        var touchedMeasurements = new Dictionary<Guid, Measurement>();
+        var touchedCheckIns = new Dictionary<DateOnly, CheckIn>();
 
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
@@ -76,6 +78,8 @@ public static class SyncEndpoints
                 "saved_meal" => await ApplySavedMealAsync(op, currentUser.UserId, now, db, serverSequence, touchedSavedMeals, ct),
                 "food_entry" => await ApplyFoodEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedFoodEntries, ct),
                 "water_entry" => await ApplyWaterEntryAsync(op, currentUser.UserId, now, db, serverSequence, touchedWaterEntries, ct),
+                "measurement" => await ApplyMeasurementAsync(op, currentUser.UserId, now, db, serverSequence, touchedMeasurements, ct),
+                "check_in" => await ApplyCheckInAsync(op, currentUser.UserId, now, db, serverSequence, touchedCheckIns, ct),
                 _ => ("rejected", "entity not supported yet", null),
             };
 
@@ -1299,6 +1303,182 @@ public static class SyncEndpoints
         return ("applied", null, null);
     }
 
+    private static async Task<(string Status, string? Reason, object? ServerCopy)> ApplyMeasurementAsync(
+        SyncOpDto op,
+        Guid userId,
+        DateTimeOffset now,
+        AppDbContext db,
+        IServerSequence serverSequence,
+        Dictionary<Guid, Measurement> touched,
+        CancellationToken ct)
+    {
+        var clientUpdatedAt = GetClientUpdatedAt(op, now);
+
+        if (!touched.TryGetValue(op.RecordId, out var existing))
+        {
+            existing = await db.Measurements.SingleOrDefaultAsync(m => m.Id == op.RecordId, ct);
+        }
+
+        var decision = RecordConflictResolver.Resolve(existing?.ClientUpdatedAt, existing?.DeletedAt is not null, op.Op, clientUpdatedAt);
+
+        if (decision.Outcome == RecordConflictResolver.Outcome.Conflict)
+        {
+            return ("conflict", "a newer edit already exists for this record", ToPayload(existing!));
+        }
+
+        if (decision.Delete)
+        {
+            if (existing is null)
+            {
+                return ("applied", null, null);
+            }
+
+            existing.DeletedAt = now;
+            existing.ClientUpdatedAt = clientUpdatedAt;
+            existing.UpdatedAt = now;
+            existing.Version++;
+            existing.ServerSeq = await serverSequence.NextAsync(ct);
+            touched[op.RecordId] = existing;
+            return ("applied", null, null);
+        }
+
+        if (!op.Payload.TryGetProperty("localDate", out var localDateProp) ||
+            !op.Payload.TryGetProperty("type", out var typeProp) ||
+            !op.Payload.TryGetProperty("valueCm", out var valueCmProp))
+        {
+            return ("rejected", "payload missing required measurement fields", null);
+        }
+
+        var localDate = DateOnly.Parse(localDateProp.GetString()!);
+        var type = typeProp.GetString()!;
+        var valueCm = valueCmProp.GetDecimal();
+
+        if (existing is null)
+        {
+            existing = new Measurement
+            {
+                Id = op.RecordId,
+                UserId = userId,
+                LocalDate = localDate,
+                Type = type,
+                ValueCm = valueCm,
+                ClientUpdatedAt = clientUpdatedAt,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Version = 1,
+                ServerSeq = await serverSequence.NextAsync(ct),
+            };
+            db.Measurements.Add(existing);
+            touched[op.RecordId] = existing;
+            return ("applied", null, null);
+        }
+
+        existing.LocalDate = localDate;
+        existing.Type = type;
+        existing.ValueCm = valueCm;
+        existing.ClientUpdatedAt = clientUpdatedAt;
+        existing.UpdatedAt = now;
+        existing.DeletedAt = null;
+        existing.Version++;
+        existing.ServerSeq = await serverSequence.NextAsync(ct);
+        touched[op.RecordId] = existing;
+
+        return ("applied", null, null);
+    }
+
+    private static async Task<(string Status, string? Reason, object? ServerCopy)> ApplyCheckInAsync(
+        SyncOpDto op,
+        Guid userId,
+        DateTimeOffset now,
+        AppDbContext db,
+        IServerSequence serverSequence,
+        Dictionary<DateOnly, CheckIn> touched,
+        CancellationToken ct)
+    {
+        if (!op.Payload.TryGetProperty("weekStart", out var weekStartProp))
+        {
+            return ("rejected", "payload missing weekStart", null);
+        }
+
+        var weekStart = DateOnly.Parse(weekStartProp.GetString()!);
+        var clientUpdatedAt = GetClientUpdatedAt(op, now);
+
+        if (!touched.TryGetValue(weekStart, out var existing))
+        {
+            existing = await db.CheckIns.SingleOrDefaultAsync(c => c.UserId == userId && c.WeekStart == weekStart, ct);
+        }
+
+        var decision = CheckInConflictResolver.Resolve(existing, op.RecordId, op.Op, clientUpdatedAt);
+
+        if (decision.Outcome == CheckInConflictResolver.Outcome.Conflict)
+        {
+            // PRD §4.4: "first one created wins, later duplicates are merged into it" — the
+            // caller already has a check-in for this week; hand back the canonical one so the
+            // client shows what was actually decided instead of silently dropping its own attempt.
+            return ("conflict", "a check-in already exists for this week", ToPayload(existing!));
+        }
+
+        if (decision.Delete)
+        {
+            if (existing is null)
+            {
+                return ("applied", null, null);
+            }
+
+            existing.DeletedAt = now;
+            existing.ClientUpdatedAt = clientUpdatedAt;
+            existing.UpdatedAt = now;
+            existing.Version++;
+            existing.ServerSeq = await serverSequence.NextAsync(ct);
+            touched[weekStart] = existing;
+            return ("applied", null, null);
+        }
+
+        if (!op.Payload.TryGetProperty("trendChange", out var trendChangeProp) ||
+            !op.Payload.TryGetProperty("suggestedKcal", out var suggestedKcalProp) ||
+            !op.Payload.TryGetProperty("decision", out var decisionProp))
+        {
+            return ("rejected", "payload missing required check_in fields", null);
+        }
+
+        var trendChange = trendChangeProp.GetDecimal();
+        var suggestedKcal = suggestedKcalProp.GetInt32();
+        var decisionValue = decisionProp.GetString()!;
+
+        if (existing is null)
+        {
+            existing = new CheckIn
+            {
+                Id = op.RecordId,
+                UserId = userId,
+                WeekStart = weekStart,
+                TrendChange = trendChange,
+                SuggestedKcal = suggestedKcal,
+                Decision = decisionValue,
+                ClientUpdatedAt = clientUpdatedAt,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Version = 1,
+                ServerSeq = await serverSequence.NextAsync(ct),
+            };
+            db.CheckIns.Add(existing);
+            touched[weekStart] = existing;
+            return ("applied", null, null);
+        }
+
+        existing.TrendChange = trendChange;
+        existing.SuggestedKcal = suggestedKcal;
+        existing.Decision = decisionValue;
+        existing.ClientUpdatedAt = clientUpdatedAt;
+        existing.UpdatedAt = now;
+        existing.DeletedAt = null;
+        existing.Version++;
+        existing.ServerSeq = await serverSequence.NextAsync(ct);
+        touched[weekStart] = existing;
+
+        return ("applied", null, null);
+    }
+
     private static async Task<IResult> Pull(long? cursor, int? limit, IEnumerable<ISyncPullSource> pullSources, CancellationToken ct)
     {
         var effectiveLimit = Math.Clamp(limit ?? DefaultPullLimit, 1, MaxPullLimit);
@@ -1452,5 +1632,22 @@ public static class SyncEndpoints
         loggedAt = w.LoggedAt,
         ml = w.Ml,
         clientUpdatedAt = w.ClientUpdatedAt,
+    };
+
+    private static object ToPayload(Measurement m) => new
+    {
+        localDate = m.LocalDate.ToString("yyyy-MM-dd"),
+        type = m.Type,
+        valueCm = m.ValueCm,
+        clientUpdatedAt = m.ClientUpdatedAt,
+    };
+
+    private static object ToPayload(CheckIn c) => new
+    {
+        weekStart = c.WeekStart.ToString("yyyy-MM-dd"),
+        trendChange = c.TrendChange,
+        suggestedKcal = c.SuggestedKcal,
+        decision = c.Decision,
+        clientUpdatedAt = c.ClientUpdatedAt,
     };
 }
