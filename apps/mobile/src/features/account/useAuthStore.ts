@@ -26,6 +26,11 @@ type AuthState = {
    * user first. Rethrows on failure so the Settings screen can show the user it didn't work,
    * rather than silently leaving them in a half-deleted state. */
   deleteAccount: () => Promise<void>;
+  /** Revokes every active refresh token for this user server-side (including this device's own),
+   * then performs the same local cleanup as `logout()` — the caller is responsible for confirming
+   * with the user first, and for the fact that this device is logged out too. Rethrows on failure
+   * so the caller can surface it, matching `deleteAccount()`'s convention. */
+  signOutAllDevices: () => Promise<void>;
 };
 
 function applySession(
@@ -117,6 +122,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await client.deleteAccount(accessToken);
 
     resetLocalDatabase();
+    await deleteSecureItem(REFRESH_TOKEN_KEY);
+    await deleteSecureItem(USER_EMAIL_KEY);
+    set({ accessToken: null, accessTokenExpiresAt: null, userEmail: null, status: 'unauthenticated' });
+  },
+
+  signOutAllDevices: async () => {
+    const { accessToken } = get();
+    // Not best-effort like logout() — if the server call fails, this device's refresh token is
+    // still valid server-side, so logging out locally without it succeeding would be misleading.
+    await client.signOutAllDevices(accessToken);
+
     await deleteSecureItem(REFRESH_TOKEN_KEY);
     await deleteSecureItem(USER_EMAIL_KEY);
     set({ accessToken: null, accessTokenExpiresAt: null, userEmail: null, status: 'unauthenticated' });

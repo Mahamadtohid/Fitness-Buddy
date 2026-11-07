@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button, Card, spacing, TextField, Typography, useTheme } from '../src/design';
+import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../src/design';
 import { listExercisesByMuscleGroup } from '../src/data/repositories/exerciseRepository';
 import { listTemplates } from '../src/data/repositories/workoutTemplateRepository';
 import type { TemplateItem } from '../src/data/repositories/workoutTemplateLogic';
@@ -20,7 +20,7 @@ import { cancelNotification, scheduleRestTimerNotification } from '../src/platfo
 import type { ExerciseRow } from '../src/data/db/schema';
 import { getLocalDateString } from '../src/platform/localDate';
 
-type SetRow = { weightKg: string; reps: string; confirmed: boolean };
+type SetRow = { weightKg: string; reps: string; rpe: string; confirmed: boolean };
 
 function overloadMessage(suggestion: ReturnType<typeof suggestOverload>): string | null {
   if (suggestion === 'increase-weight') return 'Last 2 sessions at the top of your rep range — try adding weight.';
@@ -50,11 +50,15 @@ export default function ActiveWorkoutScreen() {
       initial[item.exerciseId] = Array.from({ length: item.setCount }, (_, i) => ({
         weightKg: previous[i] ? String(previous[i].weightKg) : '',
         reps: previous[i] ? String(previous[i].reps) : '',
+        rpe: previous[i]?.rpe != null ? String(previous[i].rpe) : '',
         confirmed: false,
       }));
     }
     return initial;
   });
+
+  const [finishModalOpen, setFinishModalOpen] = useState(false);
+  const [finishNotes, setFinishNotes] = useState('');
 
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
   const [restExerciseName, setRestExerciseName] = useState('');
@@ -112,7 +116,7 @@ export default function ActiveWorkoutScreen() {
     const reps = Number(row.reps);
     if (!Number.isFinite(weightKg) || weightKg <= 0 || !Number.isFinite(reps) || reps <= 0) return;
 
-    logSet(sessionId, exerciseId, index + 1, weightKg, reps, { isWarmup: false });
+    logSet(sessionId, exerciseId, index + 1, weightKg, reps, { isWarmup: false, rpe: Number(row.rpe) || null });
     updateSet(exerciseId, index, { confirmed: true });
 
     const exercise = exerciseFor(exerciseId);
@@ -120,7 +124,13 @@ export default function ActiveWorkoutScreen() {
   }
 
   function onFinish() {
-    finishSession(sessionId);
+    setFinishNotes('');
+    setFinishModalOpen(true);
+  }
+
+  function finishAndClose(notes: string | null) {
+    finishSession(sessionId, notes);
+    setFinishModalOpen(false);
     deactivateKeepAwake();
     router.back();
   }
@@ -156,55 +166,82 @@ export default function ActiveWorkoutScreen() {
         const hint = overloadMessage(suggestion);
 
         return (
-          <Card key={item.exerciseId} style={styles.exerciseCard}>
-            <Typography variant="title">{exercise?.name ?? 'Unknown exercise'}</Typography>
-            {exercise ? (
-              <Typography variant="caption" color="secondary">
-                {exercise.repMin}-{exercise.repMax} reps · rest {exercise.restSeconds}s
-              </Typography>
-            ) : null}
-            {hint ? (
-              <Typography variant="caption" color="accent">
-                {hint}
-              </Typography>
-            ) : null}
-
-            {sets.map((set, index) => (
-              <View key={index} style={styles.setRow}>
-                <Typography variant="body" style={styles.setLabel}>
-                  Set {index + 1}
+          <Pressable
+            key={item.exerciseId}
+            onPress={() =>
+              router.push({ pathname: '/exercise/[exerciseId]', params: { exerciseId: item.exerciseId } })
+            }
+          >
+            <Card style={styles.exerciseCard}>
+              <Typography variant="title">{exercise?.name ?? 'Unknown exercise'}</Typography>
+              {exercise ? (
+                <Typography variant="caption" color="secondary">
+                  {exercise.repMin}-{exercise.repMax} reps · rest {exercise.restSeconds}s
                 </Typography>
-                <View style={styles.setInput}>
-                  <TextField
-                    label="kg"
-                    value={set.weightKg}
-                    onChangeText={(v) => updateSet(item.exerciseId, index, { weightKg: v })}
-                    keyboardType="decimal-pad"
-                    editable={!set.confirmed}
+              ) : null}
+              {hint ? (
+                <Typography variant="caption" color="accent">
+                  {hint}
+                </Typography>
+              ) : null}
+
+              {sets.map((set, index) => (
+                <View key={index} style={styles.setRow}>
+                  <Typography variant="body" style={styles.setLabel}>
+                    Set {index + 1}
+                  </Typography>
+                  <View style={styles.setInput}>
+                    <TextField
+                      label="kg"
+                      value={set.weightKg}
+                      onChangeText={(v) => updateSet(item.exerciseId, index, { weightKg: v })}
+                      keyboardType="decimal-pad"
+                      editable={!set.confirmed}
+                    />
+                  </View>
+                  <View style={styles.setInput}>
+                    <TextField
+                      label="reps"
+                      value={set.reps}
+                      onChangeText={(v) => updateSet(item.exerciseId, index, { reps: v })}
+                      keyboardType="number-pad"
+                      editable={!set.confirmed}
+                    />
+                  </View>
+                  <View style={styles.setInput}>
+                    <TextField
+                      label="RPE"
+                      value={set.rpe}
+                      onChangeText={(v) => updateSet(item.exerciseId, index, { rpe: v })}
+                      keyboardType="decimal-pad"
+                      editable={!set.confirmed}
+                    />
+                  </View>
+                  <Button
+                    label={set.confirmed ? 'Done' : 'Confirm'}
+                    variant={set.confirmed ? 'secondary' : 'primary'}
+                    disabled={set.confirmed}
+                    onPress={() => confirmSet(item.exerciseId, index)}
                   />
                 </View>
-                <View style={styles.setInput}>
-                  <TextField
-                    label="reps"
-                    value={set.reps}
-                    onChangeText={(v) => updateSet(item.exerciseId, index, { reps: v })}
-                    keyboardType="number-pad"
-                    editable={!set.confirmed}
-                  />
-                </View>
-                <Button
-                  label={set.confirmed ? 'Done' : 'Confirm'}
-                  variant={set.confirmed ? 'secondary' : 'primary'}
-                  disabled={set.confirmed}
-                  onPress={() => confirmSet(item.exerciseId, index)}
-                />
-              </View>
-            ))}
-          </Card>
+              ))}
+            </Card>
+          </Pressable>
         );
       })}
 
       <Button label="Finish workout" onPress={onFinish} />
+
+      <Modal visible={finishModalOpen} transparent animationType="slide" onRequestClose={() => setFinishModalOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <Card style={[styles.modalCard, { backgroundColor: colors.background }]}>
+            <Typography variant="title">Finish workout</Typography>
+            <TextField label="Notes (optional)" value={finishNotes} onChangeText={setFinishNotes} multiline />
+            <Button label="Save & finish" onPress={() => finishAndClose(finishNotes.trim() || null)} />
+            <Button variant="secondary" label="Skip" onPress={() => finishAndClose(null)} />
+          </Card>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -234,5 +271,15 @@ const styles = StyleSheet.create({
   },
   setInput: {
     flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalCard: {
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    gap: spacing.sm,
   },
 });

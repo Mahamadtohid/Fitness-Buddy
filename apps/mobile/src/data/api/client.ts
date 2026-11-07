@@ -62,6 +62,13 @@ export type SyncPullResponse = {
   hasMore: boolean;
 };
 
+export type SessionDto = {
+  familyId: string;
+  deviceName: string | null;
+  createdAt: string;
+  expiresAt: string;
+};
+
 async function safeJson(res: Response): Promise<{ title?: string; detail?: string } | null> {
   try {
     return await res.json();
@@ -133,6 +140,19 @@ export const client = {
   deleteAccount: (token: string | null) =>
     request<void>('/api/v1/account', {
       method: 'DELETE',
+      headers: authHeaders(token),
+    }),
+
+  /** Lists this user's active login sessions (one row per device/login, most-recent token of
+   * each token family), so Settings can show "sign out of all devices" context. */
+  listSessions: (token: string | null) =>
+    request<SessionDto[]>('/api/v1/auth/sessions', {
+      headers: authHeaders(token),
+    }),
+
+  signOutAllDevices: (token: string | null) =>
+    request<void>('/api/v1/auth/sessions/revoke-all', {
+      method: 'POST',
       headers: authHeaders(token),
     }),
 

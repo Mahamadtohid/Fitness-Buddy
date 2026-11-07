@@ -1,5 +1,6 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Card, spacing, TextField, Typography, useTheme } from '../src/design';
 import {
@@ -115,14 +116,19 @@ export default function ExerciseLibraryScreen() {
         <View key={group} style={styles.section}>
           <Typography variant="title">{titleCase(group)}</Typography>
           {exercises.map((exercise) => (
-            <Card key={exercise.id} style={styles.exerciseRow}>
-              <Typography variant="bodyStrong">{exercise.name}</Typography>
-              <Typography variant="caption" color="secondary">
-                {exercise.equipment ? `${exercise.equipment} · ` : ''}
-                {exercise.repMin}-{exercise.repMax} reps · rest {exercise.restSeconds}s
-                {exercise.isCustom ? ' · custom' : ''}
-              </Typography>
-            </Card>
+            <Pressable
+              key={exercise.id}
+              onPress={() => router.push({ pathname: '/exercise/[exerciseId]', params: { exerciseId: exercise.id } })}
+            >
+              <Card style={styles.exerciseRow}>
+                <Typography variant="bodyStrong">{exercise.name}</Typography>
+                <Typography variant="caption" color="secondary">
+                  {exercise.equipment ? `${exercise.equipment} · ` : ''}
+                  {exercise.repMin}-{exercise.repMax} reps · rest {exercise.restSeconds}s
+                  {exercise.isCustom ? ' · custom' : ''}
+                </Typography>
+              </Card>
+            </Pressable>
           ))}
         </View>
       ))}

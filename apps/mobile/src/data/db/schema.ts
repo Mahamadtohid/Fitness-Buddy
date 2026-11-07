@@ -281,6 +281,20 @@ export const photo = sqliteTable('photo', {
   filePath: text('file_path').notNull(),
 });
 
+/** LOCAL ONLY, singleton — exactly one row per install (same convention as `profile`: "there is no
+ * secondary unique key to enforce this locally beyond 'check if a row exists before inserting'"),
+ * but with no sync columns at all, no outbox, no server table (same precedent as `photo`: reminders
+ * are inherently per-device). `scheduledNotificationIds` is a JSON-stringified array of the Expo
+ * notification ids currently pending for this feature, so a reschedule can cancel exactly its own
+ * prior notifications without touching unrelated ones (e.g. the rest-timer notification). */
+export const notificationSettings = sqliteTable('notification_settings', {
+  id: text('id').primaryKey(),
+  enabled: integer('enabled').notNull().default(0),
+  wakeHour: integer('wake_hour').notNull().default(7),
+  sleepHour: integer('sleep_hour').notNull().default(22),
+  scheduledNotificationIds: text('scheduled_notification_ids').notNull().default('[]'),
+});
+
 export type WeightEntryRow = typeof weightEntry.$inferSelect;
 export type OutboxRow = typeof outbox.$inferSelect;
 export type SyncStateRow = typeof syncState.$inferSelect;
@@ -299,3 +313,4 @@ export type WaterEntryRow = typeof waterEntry.$inferSelect;
 export type MeasurementRow = typeof measurement.$inferSelect;
 export type CheckInRow = typeof checkIn.$inferSelect;
 export type PhotoRow = typeof photo.$inferSelect;
+export type NotificationSettingsRow = typeof notificationSettings.$inferSelect;

@@ -2,9 +2,10 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button, Card, spacing, TextField, Typography, useTheme } from '../src/design';
+import { Button, Card, SegmentedControl, spacing, TextField, Typography, useTheme } from '../src/design';
 import { calculateAgeFromBirthDate, calculateRestDayTarget, calculateTrainingDayTarget } from '../src/domain/bmr';
 import { calculateMacroTargets } from '../src/domain/macros';
+import { parseLengthInput, parseWeightInput, type Units } from '../src/domain/units';
 import { logWeight } from '../src/data/repositories/weightEntryRepository';
 import { saveProfile } from '../src/data/repositories/profileRepository';
 import { createTargets } from '../src/data/repositories/targetsRepository';
@@ -13,6 +14,11 @@ import { getLocalDateString } from '../src/platform/localDate';
 
 type Sex = 'male' | 'female';
 type Goal = 'lose' | 'maintain' | 'gain';
+
+const UNITS_OPTIONS: { value: Units; label: string }[] = [
+  { value: 'metric', label: 'Metric' },
+  { value: 'imperial', label: 'Imperial' },
+];
 
 const LIFESTYLE_OPTIONS: { value: number; label: string }[] = [
   { value: 1.2, label: 'Desk job, little walking' },
@@ -24,6 +30,7 @@ const GOAL_DEFAULT_RATE: Record<Goal, number> = { lose: -0.5, maintain: 0, gain:
 
 export default function OnboardingScreen() {
   const { colors } = useTheme();
+  const [units, setUnits] = useState<Units>('metric');
   const [sex, setSex] = useState<Sex | null>(null);
   const [birthDate, setBirthDate] = useState('');
   const [heightInput, setHeightInput] = useState('');
@@ -39,8 +46,8 @@ export default function OnboardingScreen() {
   };
 
   const onSubmit = () => {
-    const heightCm = Number(heightInput);
-    const weightKg = Number(weightInput);
+    const heightCm = parseLengthInput(heightInput, units);
+    const weightKg = parseWeightInput(weightInput, units);
     const rateKgPerWeek = Number(rateInput);
 
     if (
@@ -72,7 +79,7 @@ export default function OnboardingScreen() {
         lifestyleFactor,
         goal,
         rateKgPerWeek,
-        units: 'metric',
+        units,
         timeZone,
       });
 
@@ -111,6 +118,11 @@ export default function OnboardingScreen() {
       </Typography>
 
       <Card style={styles.card}>
+        <Typography variant="title">Units</Typography>
+        <SegmentedControl<Units> options={UNITS_OPTIONS} value={units} onChange={setUnits} />
+      </Card>
+
+      <Card style={styles.card}>
         <Typography variant="title">Sex</Typography>
         <View style={styles.row}>
           <Button label="Male" variant={sex === 'male' ? 'primary' : 'secondary'} onPress={() => setSex('male')} />
@@ -120,8 +132,18 @@ export default function OnboardingScreen() {
 
       <Card style={styles.card}>
         <TextField label="Birth date (YYYY-MM-DD)" value={birthDate} onChangeText={setBirthDate} keyboardType="numbers-and-punctuation" />
-        <TextField label="Height (cm)" value={heightInput} onChangeText={setHeightInput} keyboardType="decimal-pad" />
-        <TextField label="Current weight (kg)" value={weightInput} onChangeText={setWeightInput} keyboardType="decimal-pad" />
+        <TextField
+          label={units === 'imperial' ? 'Height (in)' : 'Height (cm)'}
+          value={heightInput}
+          onChangeText={setHeightInput}
+          keyboardType="decimal-pad"
+        />
+        <TextField
+          label={units === 'imperial' ? 'Current weight (lb)' : 'Current weight (kg)'}
+          value={weightInput}
+          onChangeText={setWeightInput}
+          keyboardType="decimal-pad"
+        />
       </Card>
 
       <Card style={styles.card}>

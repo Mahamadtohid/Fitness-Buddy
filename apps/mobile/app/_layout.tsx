@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../src/design';
 import { useAuthStore } from '../src/features/account/useAuthStore';
 import { getProfile } from '../src/data/repositories/profileRepository';
+import { AppLockGate } from '../src/features/security/components/AppLockGate';
+import { useAppLockStore } from '../src/features/security/useAppLockStore';
 
 function LoadingScreen() {
   const { colors } = useTheme();
@@ -15,12 +17,17 @@ function LoadingScreen() {
 function RootNavigator() {
   const status = useAuthStore((s) => s.status);
   const bootstrap = useAuthStore((s) => s.bootstrap);
+  const bootstrapAppLock = useAppLockStore((s) => s.bootstrap);
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
+
+  useEffect(() => {
+    void bootstrapAppLock();
+  }, [bootstrapAppLock]);
 
   useEffect(() => {
     if (status === 'idle') return;
@@ -53,15 +60,19 @@ function RootNavigator() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="onboarding" options={{ headerShown: true, title: 'Set up your profile' }} />
-      <Stack.Screen name="privacy-policy" options={{ headerShown: true, title: 'Privacy Policy' }} />
-      <Stack.Screen name="quick-add" options={{ presentation: 'modal', headerShown: true, title: 'Quick add' }} />
-      <Stack.Screen name="active-workout" options={{ headerShown: true, title: 'Workout' }} />
-      <Stack.Screen name="exercise-library" options={{ headerShown: true, title: 'Exercises' }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding" options={{ headerShown: true, title: 'Set up your profile' }} />
+        <Stack.Screen name="privacy-policy" options={{ headerShown: true, title: 'Privacy Policy' }} />
+        <Stack.Screen name="quick-add" options={{ presentation: 'modal', headerShown: true, title: 'Quick add' }} />
+        <Stack.Screen name="active-workout" options={{ headerShown: true, title: 'Workout' }} />
+        <Stack.Screen name="exercise-library" options={{ headerShown: true, title: 'Exercises' }} />
+        <Stack.Screen name="exercise/[exerciseId]" options={{ headerShown: true, title: 'Exercise history' }} />
+      </Stack>
+      {status === 'authenticated' ? <AppLockGate /> : null}
+    </>
   );
 }
 

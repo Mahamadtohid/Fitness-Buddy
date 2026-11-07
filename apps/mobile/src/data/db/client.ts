@@ -268,6 +268,14 @@ CREATE TABLE IF NOT EXISTS photo (
   pose TEXT NOT NULL,
   file_path TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS notification_settings (
+  id TEXT PRIMARY KEY NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  wake_hour INTEGER NOT NULL DEFAULT 7,
+  sleep_hour INTEGER NOT NULL DEFAULT 22,
+  scheduled_notification_ids TEXT NOT NULL DEFAULT '[]'
+);
 `;
 
 const DB_NAME = 'fitness-companion.db';

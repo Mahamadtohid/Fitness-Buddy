@@ -22,6 +22,8 @@ public static class AuthEndpoints
         group.MapPost("/logout", Logout);
         group.MapPost("/forgot-password", ForgotPassword);
         group.MapPost("/reset-password", ResetPassword);
+        group.MapGet("/sessions", ListSessions).RequireAuthorization();
+        group.MapPost("/sessions/revoke-all", RevokeAllSessions).RequireAuthorization();
     }
 
     private static async Task<IResult> Register(
@@ -184,6 +186,41 @@ public static class AuthEndpoints
         {
             return Results.ValidationProblem(result.Errors.ToDictionary(e => e.Code, e => new[] { e.Description }));
         }
+
+        return Results.NoContent();
+    }
+
+    /// <summary>Lists the user's active login sessions, one row per token family (PRD: a family
+    /// groups every refresh-rotation from one login), so a device that has rotated its refresh
+    /// token several times still shows up once — the most recent token in each family.</summary>
+    private static async Task<IResult> ListSessions(ICurrentUser currentUser, AppDbContext db, CancellationToken ct)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var tokens = await db.RefreshTokens
+            .Where(t => t.UserId == currentUser.UserId && t.RevokedAt == null && t.ExpiresAt > now)
+            .ToListAsync(ct);
+
+        var sessions = tokens
+            .GroupBy(t => t.FamilyId)
+            .Select(g => g.OrderByDescending(t => t.CreatedAt).First())
+            .Select(t => new SessionDto(t.FamilyId, t.DeviceName, t.CreatedAt, t.ExpiresAt))
+            .ToList();
+
+        return Results.Ok(sessions);
+    }
+
+    private static async Task<IResult> RevokeAllSessions(ICurrentUser currentUser, AppDbContext db, CancellationToken ct)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var tokens = await db.RefreshTokens
+            .Where(t => t.UserId == currentUser.UserId && t.RevokedAt == null)
+            .ToListAsync(ct);
+
+        foreach (var token in tokens)
+        {
+            token.RevokedAt = now;
+        }
+        await db.SaveChangesAsync(ct);
 
         return Results.NoContent();
     }

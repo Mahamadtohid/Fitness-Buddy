@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { copyYesterday, listForDate, logEntry, quickAdd } from '../../src/data/repositories/foodEntryRepository';
-import { resolvedNutritionFor, searchFoods } from '../../src/data/repositories/foodRepository';
+import { recentFoods, resolvedNutritionFor, searchFoods } from '../../src/data/repositories/foodRepository';
 import { create as createSavedMeal, list as listSavedMeals } from '../../src/data/repositories/savedMealRepository';
 import { latestTargets } from '../../src/data/repositories/targetsRepository';
 import { hasSessionForDate } from '../../src/data/repositories/workoutSessionRepository';
@@ -64,6 +64,10 @@ export default function FoodScreen() {
 
   const [allFoods] = useState<FoodRow[]>(() => searchFoods(''));
   const foodById = useCallback((id: string) => allFoods.find((f) => f.id === id), [allFoods]);
+
+  // Computed once per screen mount, same as `allFoods` above — the "Recent" section is a
+  // convenience shortcut on top of the full browse-all list, not a live view.
+  const [recentFoodsList] = useState<FoodRow[]>(() => recentFoods());
 
   const [entries, setEntries] = useState<FoodEntryRow[]>(() => listForDate(today));
   const refresh = useCallback(() => setEntries(listForDate(today)), [today]);
@@ -242,6 +246,32 @@ export default function FoodScreen() {
     setBuilderItems((prev) => prev.map((item, i) => (i === index ? { ...item, servings } : item)));
   };
 
+  // Shared row renderers — used both for the "Recent" section and the full list below it, so the
+  // two look identical and styling only lives in one place. `keyPrefix` keeps React keys unique
+  // when the same food appears in both sections at once.
+  const renderSearchRow = (f: FoodRow, keyPrefix = '') => (
+    <Pressable
+      key={`${keyPrefix}${f.id}`}
+      onPress={() => onLogFood(f.id)}
+      style={[styles.modalRow, { borderTopColor: colors.border }]}
+    >
+      <Typography variant="body">{f.name}</Typography>
+      <Typography variant="caption" color="secondary">
+        {f.kcal} kcal / {f.servingUnit}
+      </Typography>
+    </Pressable>
+  );
+
+  const renderBuilderRow = (f: FoodRow, keyPrefix = '') => (
+    <Pressable
+      key={`${keyPrefix}${f.id}`}
+      onPress={() => addBuilderItem(f)}
+      style={[styles.modalRow, { borderTopColor: colors.border }]}
+    >
+      <Typography variant="body">{f.name}</Typography>
+    </Pressable>
+  );
+
   const onSaveBuilder = () => {
     const items = builderItems
       .map((item) => ({ foodId: item.foodId, servings: Number(item.servings) }))
@@ -369,18 +399,18 @@ export default function FoodScreen() {
                   </Typography>
                 ) : null}
                 <ScrollView style={styles.modalList}>
-                  {searchResults.map((f) => (
-                    <Pressable
-                      key={f.id}
-                      onPress={() => onLogFood(f.id)}
-                      style={[styles.modalRow, { borderTopColor: colors.border }]}
-                    >
-                      <Typography variant="body">{f.name}</Typography>
-                      <Typography variant="caption" color="secondary">
-                        {f.kcal} kcal / {f.servingUnit}
+                  {query.trim().length === 0 && recentFoodsList.length > 0 ? (
+                    <>
+                      <Typography variant="caption" color="secondary" style={styles.listSectionHeader}>
+                        Recent
                       </Typography>
-                    </Pressable>
-                  ))}
+                      {recentFoodsList.map((f) => renderSearchRow(f, 'recent-'))}
+                      <Typography variant="caption" color="secondary" style={styles.listSectionHeader}>
+                        All foods
+                      </Typography>
+                    </>
+                  ) : null}
+                  {searchResults.map((f) => renderSearchRow(f))}
                 </ScrollView>
                 <Button variant="secondary" label="Cancel" onPress={() => setSheet(null)} />
               </>
@@ -428,15 +458,18 @@ export default function FoodScreen() {
             <TextField label="Name" value={builderName} onChangeText={setBuilderName} />
             <TextField label="Add food" value={builderQuery} onChangeText={onBuilderQueryChange} />
             <ScrollView style={styles.modalList}>
-              {builderResults.map((f) => (
-                <Pressable
-                  key={f.id}
-                  onPress={() => addBuilderItem(f)}
-                  style={[styles.modalRow, { borderTopColor: colors.border }]}
-                >
-                  <Typography variant="body">{f.name}</Typography>
-                </Pressable>
-              ))}
+              {builderQuery.trim().length === 0 && recentFoodsList.length > 0 ? (
+                <>
+                  <Typography variant="caption" color="secondary" style={styles.listSectionHeader}>
+                    Recent
+                  </Typography>
+                  {recentFoodsList.map((f) => renderBuilderRow(f, 'recent-'))}
+                  <Typography variant="caption" color="secondary" style={styles.listSectionHeader}>
+                    All foods
+                  </Typography>
+                </>
+              ) : null}
+              {builderResults.map((f) => renderBuilderRow(f))}
             </ScrollView>
             {builderItems.map((item, index) => (
               <View key={`${item.foodId}-${index}`} style={styles.row}>
@@ -500,6 +533,7 @@ const styles = StyleSheet.create({
   modalCard: { borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, gap: spacing.sm, maxHeight: '85%' },
   modalList: { maxHeight: 300 },
   modalRow: { paddingVertical: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
+  listSectionHeader: { paddingTop: spacing.xs },
   flexInput: { flex: 1 },
   servingsInput: { width: 100 },
 });
