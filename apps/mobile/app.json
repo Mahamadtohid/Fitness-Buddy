@@ -29,7 +29,20 @@
       "expo-sqlite",
       "expo-status-bar",
       "expo-notifications",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-background.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#101419",
+          "dark": {
+            "image": "./assets/splash-background.png",
+            "resizeMode": "cover",
+            "backgroundColor": "#101419"
+          }
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "http://localhost:5000",
