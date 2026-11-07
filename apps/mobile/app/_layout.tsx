@@ -4,7 +4,7 @@ import { Image, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 
-import { ThemeProvider } from '../src/design';
+import { ThemeProvider, useTheme } from '../src/design';
 import { useAuthStore } from '../src/features/account/useAuthStore';
 import { getProfile } from '../src/data/repositories/profileRepository';
 import { AppLockGate } from '../src/features/security/components/AppLockGate';
@@ -95,10 +95,17 @@ function RootNavigator() {
   );
 }
 
+/** Follows the resolved theme rather than the OS, so pinning Light while the device is in Dark
+ * (or vice versa) still gets readable status-bar content. */
+function ThemedStatusBar() {
+  const { mode } = useTheme();
+  return <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />;
+}
+
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <StatusBar style="auto" />
+      <ThemedStatusBar />
       <RootNavigator />
     </ThemeProvider>
   );

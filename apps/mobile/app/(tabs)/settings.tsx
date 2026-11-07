@@ -23,6 +23,7 @@ import {
 import { writeAndShareFile } from '../../src/data/export/fileSharing';
 import { importFromJson } from '../../src/data/export/importData';
 import { UnitsSection } from '../../src/features/profile/components/UnitsSection';
+import { ThemeSection } from '../../src/features/profile/components/ThemeSection';
 import { ActiveSessionsSection } from '../../src/features/account/components/ActiveSessionsSection';
 import { WaterReminderSettingsSection } from '../../src/features/water/components/WaterReminderSettingsSection';
 import { AppLockSettingsSection } from '../../src/features/security/components/AppLockSettingsSection';
@@ -252,6 +253,8 @@ export default function SettingsScreen() {
       </Card>
 
       <UnitsSection onChanged={() => setProfile(getProfile())} />
+
+      <ThemeSection />
 
       <Card style={styles.card}>
         <Typography variant="title">Goal</Typography>
