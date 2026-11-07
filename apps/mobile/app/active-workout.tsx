@@ -175,6 +175,8 @@ export default function ActiveWorkoutScreen() {
         return (
           <Pressable
             key={item.exerciseId}
+            accessibilityRole="button"
+            accessibilityHint="Opens this exercise's history"
             onPress={() =>
               router.push({ pathname: '/exercise/[exerciseId]', params: { exerciseId: item.exerciseId } })
             }

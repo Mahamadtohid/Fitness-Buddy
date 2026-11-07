@@ -12,7 +12,12 @@ export default function ConsentScreen() {
       <Typography variant="body" color="secondary" style={styles.body}>
         FitTrack stores health-related personal data (workouts, food, weight, water) in
         your account so it can sync across your devices. Read the{' '}
-        <Typography variant="body" color="accent" onPress={() => router.push('/privacy-policy')}>
+        <Typography
+          variant="body"
+          color="accent"
+          accessibilityRole="link"
+          onPress={() => router.push('/privacy-policy')}
+        >
           privacy policy
         </Typography>{' '}
         before continuing.

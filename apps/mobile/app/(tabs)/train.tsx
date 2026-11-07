@@ -108,7 +108,12 @@ export default function TrainScreen() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Typography variant="headline">Train</Typography>
-        <Pressable onPress={() => setPicker({ kind: 'start' })} hitSlop={8}>
+        <Pressable
+          onPress={() => setPicker({ kind: 'start' })}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Start a workout"
+        >
           <Ionicons name="calendar-outline" size={24} color={colors.textPrimary} />
         </Pressable>
       </View>
@@ -128,7 +133,11 @@ export default function TrainScreen() {
             const muscleSummary = muscleSummaryFor(templateId);
 
             return (
-              <Pressable key={weekday} onPress={() => setPicker({ kind: 'schedule', weekday })}>
+              <Pressable
+                key={weekday}
+                onPress={() => setPicker({ kind: 'schedule', weekday })}
+                accessibilityRole="button"
+              >
                 <Card style={styles.row}>
                   <View style={styles.rowLeft}>
                     <Typography variant="caption" color="secondary" style={styles.dayLabel}>
@@ -171,7 +180,7 @@ export default function TrainScreen() {
               {picker?.kind === 'schedule' ? 'Assign a template' : 'Start which workout?'}
             </Typography>
             {picker?.kind === 'schedule' ? (
-              <Pressable onPress={() => onPickForSchedule(null)} style={styles.modalRow}>
+              <Pressable onPress={() => onPickForSchedule(null)} style={styles.modalRow} accessibilityRole="button">
                 <Typography variant="body">Rest day</Typography>
               </Pressable>
             ) : null}
@@ -183,6 +192,7 @@ export default function TrainScreen() {
             {templates.map((template) => (
               <Pressable
                 key={template.id}
+                accessibilityRole="button"
                 onPress={() =>
                   picker?.kind === 'schedule' ? onPickForSchedule(template.id) : onPickForStart(template.id)
                 }

@@ -57,6 +57,7 @@ export default function LogInScreen() {
       <Typography
         variant="body"
         color="accent"
+        accessibilityRole="link"
         onPress={() => router.push('/(auth)/forgot-password')}
       >
         Forgot password?

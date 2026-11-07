@@ -27,7 +27,7 @@ export default function QuickAddSheet() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {QUICK_ADD_OPTIONS.map((option) => (
-        <Pressable key={option.label} onPress={() => onSelect(option.route)}>
+        <Pressable key={option.label} onPress={() => onSelect(option.route)} accessibilityRole="button">
           <Card style={styles.option}>
             <Typography variant="bodyStrong">{option.label}</Typography>
           </Card>

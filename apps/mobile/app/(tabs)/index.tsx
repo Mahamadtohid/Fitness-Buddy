@@ -176,7 +176,13 @@ export default function TodayScreen() {
               {today}
             </Typography>
           </View>
-          <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
+          <Ionicons
+            name="notifications-outline"
+            size={22}
+            color={colors.textSecondary}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
         </View>
 
         <View style={styles.row}>
@@ -212,7 +218,7 @@ export default function TodayScreen() {
         </Card>
 
         {canStartWorkout ? (
-          <Pressable onPress={onStartWorkout}>
+          <Pressable onPress={onStartWorkout} accessibilityRole="button">
             <Card style={[styles.sectionCard, styles.workoutCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.accent }]}>
               {WorkoutCardContent}
             </Card>

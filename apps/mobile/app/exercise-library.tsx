@@ -222,6 +222,8 @@ export default function ExerciseLibraryScreen() {
       )}
       renderItem={({ item }) => (
         <Pressable
+          accessibilityRole="button"
+          accessibilityHint="Opens this exercise's history"
           onPress={() => router.push({ pathname: '/exercise/[exerciseId]', params: { exerciseId: item.id } })}
         >
           <Card style={styles.exerciseRow}>

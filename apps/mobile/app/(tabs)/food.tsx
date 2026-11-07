@@ -254,6 +254,7 @@ export default function FoodScreen() {
       key={`${keyPrefix}${f.id}`}
       onPress={() => onLogFood(f.id)}
       style={[styles.modalRow, { borderTopColor: colors.border }]}
+      accessibilityRole="button"
     >
       <Typography variant="body">{f.name}</Typography>
       <Typography variant="caption" color="secondary">
@@ -267,6 +268,7 @@ export default function FoodScreen() {
       key={`${keyPrefix}${f.id}`}
       onPress={() => addBuilderItem(f)}
       style={[styles.modalRow, { borderTopColor: colors.border }]}
+      accessibilityRole="button"
     >
       <Typography variant="body">{f.name}</Typography>
     </Pressable>
@@ -447,6 +449,7 @@ export default function FoodScreen() {
                       key={meal.id}
                       onPress={() => onLogSavedMeal(meal)}
                       style={[styles.modalRow, { borderTopColor: colors.border }]}
+                      accessibilityRole="button"
                     >
                       <Typography variant="body">{meal.name}</Typography>
                     </Pressable>
