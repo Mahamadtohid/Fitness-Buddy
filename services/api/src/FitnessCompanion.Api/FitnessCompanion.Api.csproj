@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
     <RootNamespace>FitnessCompanion.Api</RootNamespace>
+    <UserSecretsId>b5512703-bd36-4aa1-89fa-93085f8564e2</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,6 +8,7 @@ import { buildLogWaterChange } from './waterEntryLogic';
 import { listWeightEntries } from './weightEntryRepository';
 import { hasSessionForDate } from './workoutSessionRepository';
 import { getLocalDateString } from '../../platform/localDate';
+import { rescheduleWaterReminders } from '../../platform/notifications';
 
 const ML_PER_KG = 35;
 const TRAINING_DAY_BUMP_ML = 500;
@@ -29,6 +30,11 @@ export function logWater(ml: number): void {
   });
 
   notifyLocalWrite();
+
+  // Best-effort notification bookkeeping, not critical-path logic — today's target may now be met,
+  // so the remaining reminders for today need recomputing. Fire-and-forget: never block or throw
+  // into the caller.
+  void rescheduleWaterReminders();
 }
 
 export function totalForDate(localDate: string): number {

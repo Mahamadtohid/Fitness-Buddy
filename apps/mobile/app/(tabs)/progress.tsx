@@ -14,6 +14,8 @@ import { logMeasurement, listByType } from '../../src/data/repositories/measurem
 import type { MeasurementType } from '../../src/data/repositories/measurementLogic';
 import { savePhoto, listPhotos, type Pose } from '../../src/data/repositories/photoRepository';
 import { getWeeklyProgressStats, type WeeklyProgressStats } from '../../src/data/repositories/progressStats';
+import { getProfile } from '../../src/data/repositories/profileRepository';
+import { kgToLb, formatLength, formatWeight, parseLengthInput, parseWeightInput, type Units } from '../../src/domain/units';
 
 const CHART_WINDOW_DAYS = 7;
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -62,7 +64,7 @@ function signedKcal(value: number): string {
  * this local week, generates a new one if the readiness gate is met, or a plain "not ready yet"
  * message otherwise. A `'pending'` decision is the only actionable state; anything else (already
  * decided, this device or another) renders as a past record. */
-const CheckInCard = memo(function CheckInCard({ onDecided }: { onDecided: () => void }) {
+const CheckInCard = memo(function CheckInCard({ onDecided, units }: { onDecided: () => void; units: Units }) {
   // Re-evaluated by remounting this component (see the `key={checkInVersion}` below) rather than
   // local setState — a decision changes which card variant renders, which is simplest as a fresh
   // read of local state on remount.
@@ -122,7 +124,8 @@ const CheckInCard = memo(function CheckInCard({ onDecided }: { onDecided: () => 
     <Card style={styles.sectionCard}>
       <Typography variant="title">Weekly check-in</Typography>
       <Typography variant="body">
-        Trend change: {checkIn.trendChange.toFixed(2)} kg/week
+        Trend change: {units === 'imperial' ? kgToLb(checkIn.trendChange).toFixed(2) : checkIn.trendChange.toFixed(2)}{' '}
+        {units === 'imperial' ? 'lb' : 'kg'}/week
       </Typography>
       <Typography variant="bodyStrong">
         {signedKcal(checkIn.suggestedKcal)} kcal/day suggested
@@ -146,7 +149,7 @@ const CheckInCard = memo(function CheckInCard({ onDecided }: { onDecided: () => 
   );
 });
 
-const MeasurementsSection = memo(function MeasurementsSection() {
+const MeasurementsSection = memo(function MeasurementsSection({ units }: { units: Units }) {
   const [type, setType] = useState<MeasurementType>('waist');
   const [value, setValue] = useState('');
   const [rows, setRows] = useState<MeasurementRow[]>(() => listByType('waist'));
@@ -159,7 +162,7 @@ const MeasurementsSection = memo(function MeasurementsSection() {
   };
 
   const onLog = () => {
-    const valueCm = Number(value);
+    const valueCm = parseLengthInput(value, units);
     if (!Number.isFinite(valueCm) || valueCm <= 0) return;
     logMeasurement(getLocalDateString(), type, valueCm);
     setValue('');
@@ -181,13 +184,18 @@ const MeasurementsSection = memo(function MeasurementsSection() {
       </View>
       <View style={styles.row}>
         <View style={styles.flexInput}>
-          <TextField label="Value (cm)" value={value} onChangeText={setValue} keyboardType="decimal-pad" />
+          <TextField
+            label={units === 'imperial' ? 'Value (in)' : 'Value (cm)'}
+            value={value}
+            onChangeText={setValue}
+            keyboardType="decimal-pad"
+          />
         </View>
         <Button label="Log" onPress={onLog} />
       </View>
       {rows.slice(0, 5).map((row) => (
         <Typography key={row.id} variant="caption" color="secondary">
-          {row.localDate}: {row.valueCm} cm
+          {row.localDate}: {formatLength(row.valueCm, units)}
         </Typography>
       ))}
     </Card>
@@ -306,10 +314,12 @@ export default function ProgressScreen() {
   // actions (logging a weigh-in, syncing) — this screen has no focus-effect refresh today, so
   // matching that existing convention rather than introducing a new one for just this.
   const [weeklyStats, setWeeklyStats] = useState<WeeklyProgressStats>(() => getWeeklyProgressStats());
+  const [units, setUnits] = useState<Units>(() => (getProfile()?.units as Units) ?? 'metric');
 
   const refresh = () => {
     setEntries(listWeightEntries());
     setWeeklyStats(getWeeklyProgressStats());
+    setUnits((getProfile()?.units as Units) ?? 'metric');
   };
 
   const onSyncNow = () => {
@@ -318,7 +328,7 @@ export default function ProgressScreen() {
   };
 
   const onLog = () => {
-    const weightKg = Number(weightInput);
+    const weightKg = parseWeightInput(weightInput, units);
     if (!Number.isFinite(weightKg) || weightKg <= 0) return;
     const localDate = getLocalDateString();
     logWeight(localDate, weightKg);
@@ -368,15 +378,21 @@ export default function ProgressScreen() {
             </View>
             {latestTrend !== null ? (
               <View style={styles.statRow}>
-                <Typography variant="statLarge">{latestTrend.toFixed(1)}</Typography>
+                <Typography variant="statLarge">
+                  {(units === 'imperial' ? kgToLb(latestTrend) : latestTrend).toFixed(1)}
+                </Typography>
                 <Typography variant="statUnit" color="secondary">
                   {' '}
-                  kg
+                  {units === 'imperial' ? 'lb' : 'kg'}
                 </Typography>
               </View>
             ) : null}
             {weeklyRate !== null ? (
-              <TrendDelta value={weeklyRate} formatAbs={(abs) => abs.toFixed(1)} suffix="kg vs last week" />
+              <TrendDelta
+                value={weeklyRate}
+                formatAbs={(abs) => (units === 'imperial' ? kgToLb(abs) : abs).toFixed(1)}
+                suffix={units === 'imperial' ? 'lb vs last week' : 'kg vs last week'}
+              />
             ) : (
               <Typography variant="caption" color="secondary">
                 Not enough data yet
@@ -439,7 +455,7 @@ export default function ProgressScreen() {
           <View style={styles.row}>
             <View style={styles.flexInput}>
               <TextField
-                label="Weight (kg)"
+                label={units === 'imperial' ? 'Weight (lb)' : 'Weight (kg)'}
                 value={weightInput}
                 onChangeText={setWeightInput}
                 keyboardType="decimal-pad"
@@ -448,9 +464,9 @@ export default function ProgressScreen() {
             <Button label="Log weight" onPress={onLog} />
           </View>
 
-          <CheckInCard onDecided={onCheckInDecided} key={checkInVersion} />
+          <CheckInCard onDecided={onCheckInDecided} units={units} key={checkInVersion} />
 
-          <MeasurementsSection />
+          <MeasurementsSection units={units} />
           <PhotosSection />
 
           <Card style={styles.statusCard}>
@@ -469,7 +485,7 @@ export default function ProgressScreen() {
       renderItem={({ item }) => (
         <View style={[styles.entryRow, { borderBottomColor: colors.border }]}>
           <Typography variant="body">{item.localDate}</Typography>
-          <Typography variant="body">{item.weightKg} kg</Typography>
+          <Typography variant="body">{formatWeight(item.weightKg, units)}</Typography>
         </View>
       )}
     />

@@ -8,8 +8,10 @@ import { getTodaySummary, type TodaySummary } from '../../src/data/repositories/
 import { logWater } from '../../src/data/repositories/waterEntryRepository';
 import { logWeight } from '../../src/data/repositories/weightEntryRepository';
 import { getSchedule } from '../../src/data/repositories/scheduleRepository';
+import { getProfile } from '../../src/data/repositories/profileRepository';
 import { retryNow, useSyncStatusStore } from '../../src/data/sync';
 import { getLocalDateString } from '../../src/platform/localDate';
+import { parseWeightInput, type Units } from '../../src/domain/units';
 
 /** Matches `Date.prototype.getDay()` convention used by scheduleRepository/train.tsx. */
 function weekdayOf(localDate: string): number {
@@ -77,6 +79,7 @@ export default function TodayScreen() {
   // live DB query (`getSchedule()`) called directly in the render body, so it re-ran on every
   // keystroke in this screen's two text fields too.
   const [scheduledTemplateId, setScheduledTemplateId] = useState<string | null>(() => scheduledTemplateIdFor(weekday));
+  const [units, setUnits] = useState<Units>(() => (getProfile()?.units as Units) ?? 'metric');
   const [weightInput, setWeightInput] = useState('');
   const [customWater, setCustomWater] = useState('');
   const [customWaterOpen, setCustomWaterOpen] = useState(false);
@@ -84,6 +87,7 @@ export default function TodayScreen() {
   const refresh = useCallback(() => {
     setSummary(getTodaySummary());
     setScheduledTemplateId(scheduledTemplateIdFor(weekday));
+    setUnits((getProfile()?.units as Units) ?? 'metric');
   }, [weekday]);
   useFocusEffect(refresh);
 
@@ -102,7 +106,7 @@ export default function TodayScreen() {
   };
 
   const onLogWeight = () => {
-    const weightKg = Number(weightInput);
+    const weightKg = parseWeightInput(weightInput, units);
     if (!Number.isFinite(weightKg) || weightKg <= 0) return;
     logWeight(today, weightKg);
     setWeightInput('');
@@ -209,7 +213,12 @@ export default function TodayScreen() {
           <Typography variant="bodyStrong">Log today&apos;s weigh-in</Typography>
           <View style={styles.row}>
             <View style={styles.flexInput}>
-              <TextField label="Weight (kg)" value={weightInput} onChangeText={setWeightInput} keyboardType="decimal-pad" />
+              <TextField
+                label={units === 'imperial' ? 'Weight (lb)' : 'Weight (kg)'}
+                value={weightInput}
+                onChangeText={setWeightInput}
+                keyboardType="decimal-pad"
+              />
             </View>
             <Button label="Log" onPress={onLogWeight} />
           </View>

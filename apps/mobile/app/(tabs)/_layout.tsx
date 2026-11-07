@@ -1,12 +1,13 @@
 import { Tabs } from 'expo-router';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { QuickAddButton } from '../../src/design/components/QuickAddButton';
 import { useTheme } from '../../src/design';
 import { initSync } from '../../src/data/sync';
 import { seedStarterTemplatesIfEmpty } from '../../src/data/repositories/workoutTemplateRepository';
+import { rescheduleWaterReminders } from '../../src/platform/notifications';
 
 const ICON_SIZE = 22;
 
@@ -16,6 +17,18 @@ export default function TabsLayout() {
   useEffect(() => {
     seedStarterTemplatesIfEmpty();
     initSync();
+  }, []);
+
+  useEffect(() => {
+    void rescheduleWaterReminders();
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void rescheduleWaterReminders();
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   return (

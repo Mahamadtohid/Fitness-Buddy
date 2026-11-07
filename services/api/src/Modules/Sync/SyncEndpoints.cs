@@ -700,6 +700,11 @@ public static class SyncEndpoints
         var units = unitsProp.GetString()!;
         var timeZone = timeZoneProp.GetString()!;
 
+        if (units is not ("metric" or "imperial"))
+        {
+            return ("rejected", "units must be 'metric' or 'imperial'", null);
+        }
+
         if (existing is null)
         {
             existing = new UserProfile

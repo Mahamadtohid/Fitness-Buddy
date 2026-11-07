@@ -21,6 +21,10 @@ import {
 } from '../../src/data/export/exportData';
 import { writeAndShareFile } from '../../src/data/export/fileSharing';
 import { importFromJson } from '../../src/data/export/importData';
+import { UnitsSection } from '../../src/features/profile/components/UnitsSection';
+import { ActiveSessionsSection } from '../../src/features/account/components/ActiveSessionsSection';
+import { WaterReminderSettingsSection } from '../../src/features/water/components/WaterReminderSettingsSection';
+import { AppLockSettingsSection } from '../../src/features/security/components/AppLockSettingsSection';
 
 type Goal = 'lose' | 'maintain' | 'gain';
 
@@ -246,6 +250,8 @@ export default function SettingsScreen() {
         )}
       </Card>
 
+      <UnitsSection />
+
       <Card style={styles.card}>
         <Typography variant="title">Goal</Typography>
         <View style={styles.row}>
@@ -318,6 +324,12 @@ export default function SettingsScreen() {
           </Typography>
         ) : null}
       </Card>
+
+      <WaterReminderSettingsSection />
+
+      <AppLockSettingsSection />
+
+      <ActiveSessionsSection />
 
       <Button variant="secondary" label="Log out" onPress={onLogout} />
 
