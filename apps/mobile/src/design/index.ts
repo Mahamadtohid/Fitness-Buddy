@@ -5,6 +5,7 @@ export * from './components/Card';
 export * from './components/Button';
 export * from './components/PlaceholderScreen';
 export * from './components/TextField';
+export * from './components/KeyboardAwareScreen';
 export * from './components/CircularProgress';
 export * from './components/SegmentedControl';
 export * from './components/LineChart';

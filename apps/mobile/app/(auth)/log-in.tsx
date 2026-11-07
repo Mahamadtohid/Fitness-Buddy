@@ -1,19 +1,18 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-
-import { Button, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { useRef, useState } from 'react';
+import { Button, KeyboardAwareScreen, TextField, Typography, type TextFieldHandle } from '../../src/design';
 import { useAuthStore } from '../../src/features/account/useAuthStore';
 
 export default function LogInScreen() {
-  const { colors } = useTheme();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const passwordRef = useRef<TextFieldHandle>(null);
 
   const onSubmit = async () => {
+    if (submitting) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -27,15 +26,28 @@ export default function LogInScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAwareScreen>
       <TextField
         label="Email"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        autoComplete="email"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => passwordRef.current?.focus()}
       />
-      <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry />
+      <TextField
+        ref={passwordRef}
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        autoComplete="current-password"
+        returnKeyType="go"
+        onSubmitEditing={() => void onSubmit()}
+      />
       {error ? (
         <Typography variant="body" color="danger">
           {error}
@@ -49,14 +61,6 @@ export default function LogInScreen() {
       >
         Forgot password?
       </Typography>
-    </View>
+    </KeyboardAwareScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-});

@@ -1,17 +1,16 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 
-import { Button, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { Button, KeyboardAwareScreen, TextField, Typography } from '../../src/design';
 import { client } from '../../src/data/api/client';
 
 export default function ForgotPasswordScreen() {
-  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
   const onSubmit = async () => {
+    if (submitting || !email.trim()) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -25,7 +24,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAwareScreen>
       <Typography variant="body" color="secondary">
         We will email you a link to reset your password.
       </Typography>
@@ -35,7 +34,10 @@ export default function ForgotPasswordScreen() {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        autoComplete="email"
         editable={!sent}
+        returnKeyType="go"
+        onSubmitEditing={() => void onSubmit()}
       />
       {error ? (
         <Typography variant="body" color="danger">
@@ -53,14 +55,6 @@ export default function ForgotPasswordScreen() {
           disabled={submitting || !email.trim()}
         />
       )}
-    </View>
+    </KeyboardAwareScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-});
