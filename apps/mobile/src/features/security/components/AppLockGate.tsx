@@ -1,6 +1,14 @@
 import * as ScreenCapture from 'expo-screen-capture';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, type AppStateStatus, StyleSheet, View } from 'react-native';
+import {
+  AppState,
+  type AppStateStatus,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { Button, spacing, TextField, Typography, useTheme } from '../../../design';
 import { useAppLockStore } from '../useAppLockStore';
@@ -100,37 +108,54 @@ export function AppLockGate() {
     });
   };
 
+  // Guidelines §10: this overlay has nowhere to scroll, so on a small device the number pad could
+  // cover the PIN field and the Unlock button with no way to reach them. The `KeyboardAvoidingView`
+  // (iOS only — Android resizes the window itself via `softwareKeyboardLayoutMode: "resize"`, so
+  // padding there would double-count the keyboard) plus a scrollable content area fixes that;
+  // `justifyContent: 'center'` on `flexGrow: 1` content keeps the panel visually centered exactly
+  // as before whenever the keyboard is closed. `keyboardShouldPersistTaps="handled"` makes
+  // "Unlock" fire on the *first* tap while the PIN field is focused.
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: colors.background }]}>
-      <View style={styles.content}>
-        <Typography variant="headline">App locked</Typography>
-        <Typography variant="body" color="secondary">
-          Unlock to continue — your progress photos and data are protected.
-        </Typography>
+      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          style={styles.fill}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <Typography variant="headline">App locked</Typography>
+            <Typography variant="body" color="secondary">
+              Unlock to continue — your progress photos and data are protected.
+            </Typography>
 
-        <Button label="Unlock with Face ID / Fingerprint" onPress={onRetryBiometric} />
+            <Button label="Unlock with Face ID / Fingerprint" onPress={onRetryBiometric} />
 
-        <TextField
-          label="PIN"
-          value={pin}
-          onChangeText={setPin}
-          keyboardType="number-pad"
-          secureTextEntry
-          maxLength={8}
-        />
+            <TextField
+              label="PIN"
+              value={pin}
+              onChangeText={setPin}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={8}
+            />
 
-        {error ? (
-          <Typography variant="caption" color="danger">
-            {error}
-          </Typography>
-        ) : null}
+            {error ? (
+              <Typography variant="caption" color="danger">
+                {error}
+              </Typography>
+            ) : null}
 
-        <Button
-          label={submitting ? 'Unlocking…' : 'Unlock'}
-          onPress={onSubmitPin}
-          disabled={submitting || pin.length === 0}
-        />
-      </View>
+            <Button
+              label={submitting ? 'Unlocking…' : 'Unlock'}
+              onPress={onSubmitPin}
+              disabled={submitting || pin.length === 0}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -139,6 +164,14 @@ const styles = StyleSheet.create({
   overlay: {
     zIndex: 1000,
     elevation: 1000,
+  },
+  fill: {
+    flex: 1,
+  },
+  // Centering moved off `overlay` onto the scroll content so the panel still sits centered when
+  // the keyboard is closed, but can scroll up instead of being clipped when it opens.
+  scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

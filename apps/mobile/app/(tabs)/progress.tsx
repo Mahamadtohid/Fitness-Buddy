@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { FlatList, Image, StyleSheet, View } from 'react-native';
+import { FlatList, Image, Platform, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button, Card, LineChart, Sparkline, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
@@ -354,12 +354,22 @@ export default function ProgressScreen() {
   );
   const latestTrend = trendSeries.length > 0 ? trendSeries[trendSeries.length - 1].trend : null;
 
+  // Guidelines §10: the keyboard props go straight on the `FlatList` (it forwards them to its
+  // underlying ScrollView) rather than wrapping it — nesting a virtualized list inside a
+  // ScrollView would break virtualization and is the "avoid nested scrolling areas" anti-pattern.
+  // `keyboardShouldPersistTaps="handled"` is what makes "Log weight", "Confirm", "Log" and the
+  // measurement/pose buttons fire on the *first* tap while a field is focused; taps on blank
+  // space and dragging the list still dismiss the keyboard. No `KeyboardAvoidingView` here: every
+  // input lives in the list header with a long list body below it, so the keyboard can always be
+  // scrolled clear of, and iOS keyboard padding on a virtualized list would fight the scroll.
   return (
     <FlatList
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
       data={entries}
       keyExtractor={(item) => item.id}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
       ListHeaderComponent={
         <>
           <View style={styles.headerRow}>
