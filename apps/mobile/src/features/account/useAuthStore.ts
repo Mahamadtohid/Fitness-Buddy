@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { client } from '../../data/api/client';
+import { resetLocalDatabase } from '../../data/db/client';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../../platform/secureStorage';
 
 const REFRESH_TOKEN_KEY = 'auth.refreshToken';
@@ -20,6 +21,11 @@ type AuthState = {
   logout: () => Promise<void>;
   /** Used by the sync engine on a 401; returns false (and logs out) if the refresh token is dead. */
   refreshSilently: () => Promise<boolean>;
+  /** PRD §3.1/§7.9: deletes the account server-side (cascades to every owned row) and wipes all
+   * local data on this device — irreversible, the caller is responsible for confirming with the
+   * user first. Rethrows on failure so the Settings screen can show the user it didn't work,
+   * rather than silently leaving them in a half-deleted state. */
+  deleteAccount: () => Promise<void>;
 };
 
 function applySession(
@@ -35,7 +41,7 @@ function applySession(
   });
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   accessTokenExpiresAt: null,
   userEmail: null,
@@ -102,5 +108,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ status: 'unauthenticated', accessToken: null });
       return false;
     }
+  },
+
+  deleteAccount: async () => {
+    const { accessToken } = get();
+    // Not best-effort like logout() — a failed server-side delete must not silently wipe the
+    // local copy of data that still exists on the server under the user's account.
+    await client.deleteAccount(accessToken);
+
+    resetLocalDatabase();
+    await deleteSecureItem(REFRESH_TOKEN_KEY);
+    await deleteSecureItem(USER_EMAIL_KEY);
+    set({ accessToken: null, accessTokenExpiresAt: null, userEmail: null, status: 'unauthenticated' });
   },
 }));

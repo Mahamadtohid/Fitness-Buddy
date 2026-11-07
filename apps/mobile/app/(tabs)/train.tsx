@@ -89,6 +89,11 @@ export default function TrainScreen() {
                 <Typography variant="body">Rest day</Typography>
               </Pressable>
             ) : null}
+            {templates.length === 0 ? (
+              <Typography variant="body" color="secondary">
+                No workout templates yet.
+              </Typography>
+            ) : null}
             {templates.map((template) => (
               <Pressable
                 key={template.id}

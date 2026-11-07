@@ -217,6 +217,8 @@ namespace FitnessCompanion.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("CustomFoods");
                 });
 
@@ -270,6 +272,8 @@ namespace FitnessCompanion.Api.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("FoodEntries");
                 });
@@ -362,6 +366,8 @@ namespace FitnessCompanion.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("SavedMeals");
                 });
 
@@ -418,6 +424,8 @@ namespace FitnessCompanion.Api.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Targets");
                 });
@@ -574,6 +582,8 @@ namespace FitnessCompanion.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("Measurements");
                 });
 
@@ -657,6 +667,8 @@ namespace FitnessCompanion.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("WaterEntries");
                 });
 
@@ -711,6 +723,8 @@ namespace FitnessCompanion.Api.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("CustomExercises");
                 });
@@ -810,6 +824,8 @@ namespace FitnessCompanion.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("SetEntries");
                 });
 
@@ -857,6 +873,8 @@ namespace FitnessCompanion.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("WorkoutSessions");
                 });
 
@@ -896,6 +914,8 @@ namespace FitnessCompanion.Api.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("WorkoutTemplates");
                 });
@@ -1054,6 +1074,141 @@ namespace FitnessCompanion.Api.Migrations
                 });
 
             modelBuilder.Entity("FitnessCompanion.Api.Modules.Identity.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Nutrition.CustomFood", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Nutrition.FoodEntry", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Nutrition.FoodOverride", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Nutrition.SavedMeal", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Profile.Target", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Profile.UserProfile", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Progress.CheckIn", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Progress.Measurement", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Progress.WeightEntry", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Water.WaterEntry", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Workouts.CustomExercise", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Workouts.ScheduleEntry", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Workouts.SetEntry", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Workouts.WorkoutSession", b =>
+                {
+                    b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FitnessCompanion.Api.Modules.Workouts.WorkoutTemplate", b =>
                 {
                     b.HasOne("FitnessCompanion.Api.Modules.Identity.Entities.ApplicationUser", null)
                         .WithMany()

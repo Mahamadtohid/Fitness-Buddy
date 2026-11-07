@@ -222,6 +222,11 @@ export default function FoodScreen() {
             {sheet?.mode === 'search' ? (
               <>
                 <TextField label="Search foods" value={query} onChangeText={onSearchChange} />
+                {searchResults.length === 0 ? (
+                  <Typography variant="caption" color="secondary">
+                    No foods match &quot;{query}&quot; — try a different search, or use Quick add instead.
+                  </Typography>
+                ) : null}
                 <ScrollView style={styles.modalList}>
                   {searchResults.map((f) => (
                     <Pressable

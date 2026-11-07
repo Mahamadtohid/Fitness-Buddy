@@ -206,6 +206,8 @@ function PhotosSection() {
   const [pose, setPose] = useState<Pose>('front');
   const [photos, setPhotos] = useState<PhotoRow[]>(() => listPhotos('front'));
   const [selected, setSelected] = useState<string[]>([]);
+  const [picking, setPicking] = useState(false);
+  const [pickError, setPickError] = useState<string | null>(null);
 
   const refresh = (p: Pose) => setPhotos(listPhotos(p));
 
@@ -216,10 +218,20 @@ function PhotosSection() {
   };
 
   const onPick = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-    if (result.canceled || !result.assets?.[0]) return;
-    await savePhoto(getLocalDateString(), pose, result.assets[0].uri);
-    refresh(pose);
+    setPickError(null);
+    setPicking(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+      if (result.canceled || !result.assets?.[0]) return;
+      await savePhoto(getLocalDateString(), pose, result.assets[0].uri);
+      refresh(pose);
+    } catch (err) {
+      // Covers both a denied library-access permission and a failed file copy in savePhoto —
+      // either way the picker/save previously failed silently with no visible feedback.
+      setPickError(err instanceof Error ? err.message : 'Could not add that photo — check photo library access and try again.');
+    } finally {
+      setPicking(false);
+    }
   };
 
   const onToggleSelect = (id: string) => {
@@ -248,7 +260,18 @@ function PhotosSection() {
           />
         ))}
       </View>
-      <Button variant="secondary" label="Add photo" onPress={onPick} />
+      <Button variant="secondary" label={picking ? 'Adding photo…' : 'Add photo'} onPress={onPick} disabled={picking} />
+      {pickError ? (
+        <Typography variant="caption" color="danger">
+          {pickError}
+        </Typography>
+      ) : null}
+
+      {photos.length === 0 ? (
+        <Typography variant="caption" color="secondary">
+          No {pose} photos yet.
+        </Typography>
+      ) : null}
 
       {comparePhotos.length === 2 ? (
         <View style={styles.compareRow}>

@@ -122,6 +122,20 @@ export const client = {
       body: JSON.stringify({ refreshToken }),
     }),
 
+  forgotPassword: (email: string) =>
+    request<void>('/api/v1/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  /** PRD §3.1/§7.9: required by Apple/Google — deletes the account and, since the
+   * AppDbContext cascade-delete fix, every row it owns on the server. */
+  deleteAccount: (token: string | null) =>
+    request<void>('/api/v1/account', {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    }),
+
   syncPush: (ops: SyncOpDto[], token: string | null) =>
     request<SyncPushResponse>('/api/v1/sync/push', {
       method: 'POST',

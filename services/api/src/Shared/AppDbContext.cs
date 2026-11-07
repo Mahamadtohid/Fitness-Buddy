@@ -113,6 +113,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
             var currentUserIdAccess = Expression.Property(Expression.Constant(currentUser), nameof(ICurrentUser.UserId));
             var filter = Expression.Lambda(Expression.Equal(userIdAccess, currentUserIdAccess), parameter);
             builder.Entity(entityType.ClrType).HasQueryFilter(filter);
+
+            // Cascade-delete every IUserOwned entity when its owning user is deleted — required
+            // for account deletion (PRD §3.1, §7.9) to actually remove all server data, not just
+            // the login. Without this, deleting the ApplicationUser row orphans every other table's
+            // rows instead of removing them (the bug this fixes: AccountEndpoints.DeleteAccount's
+            // doc comment already claimed this behavior, but no entity actually had it configured
+            // except RefreshToken, which sets it up explicitly above). Applying it here, once, for
+            // every current and future IUserOwned entity is safer than relying on each new module
+            // to remember to add it by hand.
+            builder.Entity(entityType.ClrType)
+                .HasOne(typeof(ApplicationUser))
+                .WithMany()
+                .HasForeignKey(nameof(IUserOwned.UserId))
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

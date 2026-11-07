@@ -1,0 +1,16 @@
+# PRD §10 "Log a workout" E2E flow. Unverified (see .maestro/README.md). Assumes an already
+# logged-in, onboarded account with the seeded "Push" starter template available.
+appId: com.fitnesscompanion.app
+---
+- launchApp
+- tapOn: "Train"
+- tapOn: "Choose a template"
+- tapOn: "Push"
+- assertVisible: "Finish workout"
+# Confirm the first exercise's first set using whatever weight/reps are pre-filled (or 0 on a
+# brand-new account) — this flow only proves one set logs and the session completes, not a
+# specific weight/rep value.
+- tapOn: "Confirm"
+- assertVisible: "Resting"
+- tapOn: "Finish workout"
+- assertVisible: "Train"

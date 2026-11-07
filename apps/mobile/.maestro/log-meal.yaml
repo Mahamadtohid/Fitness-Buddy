@@ -1,0 +1,20 @@
+# PRD §10 "Log a meal" E2E flow. Unverified (see .maestro/README.md). Uses Quick add rather than
+# food search, since it needs no assumption about which seeded foods exist. Assumes an already
+# logged-in, onboarded account.
+appId: com.fitnesscompanion.app
+---
+- launchApp
+- tapOn: "Food"
+# Four slot cards each have their own "Add" button — index 0 is Breakfast's.
+- tapOn:
+    text: "Add"
+    index: 0
+- tapOn: "Quick add"
+- tapOn: "Name"
+- inputText: "Maestro test meal"
+- tapOn: "Calories"
+- inputText: "450"
+- tapOn: "Protein (g)"
+- inputText: "30"
+- tapOn: "Add"
+- assertVisible: "Maestro test meal"

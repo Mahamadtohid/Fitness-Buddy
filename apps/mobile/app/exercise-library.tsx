@@ -24,6 +24,7 @@ export default function ExerciseLibraryScreen() {
   const [repMax, setRepMax] = useState('12');
   const [restSeconds, setRestSeconds] = useState('90');
   const [isLowerBody, setIsLowerBody] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   function resetForm() {
     setName('');
@@ -36,11 +37,18 @@ export default function ExerciseLibraryScreen() {
   }
 
   function onAddExercise() {
+    setFormError(null);
     const parsedRepMin = Number(repMin);
     const parsedRepMax = Number(repMax);
     const parsedRest = Number(restSeconds);
-    if (!name.trim() || !muscleGroup.trim()) return;
-    if (!Number.isFinite(parsedRepMin) || !Number.isFinite(parsedRepMax) || !Number.isFinite(parsedRest)) return;
+    if (!name.trim() || !muscleGroup.trim()) {
+      setFormError('Name and muscle group are required.');
+      return;
+    }
+    if (!Number.isFinite(parsedRepMin) || !Number.isFinite(parsedRepMax) || !Number.isFinite(parsedRest)) {
+      setFormError('Rep range and rest seconds must be numbers.');
+      return;
+    }
 
     createCustomExercise({
       name: name.trim(),
@@ -88,8 +96,19 @@ export default function ExerciseLibraryScreen() {
             label={isLowerBody ? 'Lower body: yes' : 'Lower body: no'}
             onPress={() => setIsLowerBody((v) => !v)}
           />
+          {formError ? (
+            <Typography variant="body" color="danger">
+              {formError}
+            </Typography>
+          ) : null}
           <Button label="Save exercise" onPress={onAddExercise} />
         </Card>
+      ) : null}
+
+      {Object.keys(grouped).length === 0 ? (
+        <Typography variant="body" color="secondary">
+          No exercises yet — add a custom one above.
+        </Typography>
       ) : null}
 
       {Object.entries(grouped).map(([group, exercises]) => (
