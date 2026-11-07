@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { router } from 'expo-router';
@@ -231,143 +231,161 @@ export default function SettingsScreen() {
     );
   }
 
+  // Guidelines §10: `keyboardShouldPersistTaps="handled"` is what makes "Recalculate targets",
+  // "Save override" and the export/import buttons fire on the *first* tap while a field above them
+  // is focused (the default swallows that tap just to dismiss the keyboard); taps on blank space
+  // and dragging the list still dismiss it. The `KeyboardAvoidingView` is needed because this
+  // form's last fields (water reminders, app-lock PIN) sit at the very bottom of the scroll —
+  // without it there is no room left to scroll them clear of the keyboard. iOS only: Android
+  // resizes the window itself (`softwareKeyboardLayoutMode: "resize"`), so padding there would
+  // double-count the keyboard height.
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <Typography variant="headline">Settings</Typography>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      >
+        <Typography variant="headline">Settings</Typography>
 
-      <Card style={styles.card}>
-        <Typography variant="title">Profile</Typography>
-        <Typography variant="body">
-          {profile.sex}, born {profile.birthDate}, {formatLength(profile.heightCm, profile.units as Units)}
-        </Typography>
-        {targets ? (
-          <Typography variant="body" color="secondary">
-            Current target: {targets.kcalRest} kcal rest / {targets.kcalTraining} kcal training ·{' '}
-            {targets.proteinG} g protein
+        <Card style={styles.card}>
+          <Typography variant="title">Profile</Typography>
+          <Typography variant="body">
+            {profile.sex}, born {profile.birthDate}, {formatLength(profile.heightCm, profile.units as Units)}
           </Typography>
-        ) : (
-          <Typography variant="body" color="secondary">
-            No targets calculated yet.
-          </Typography>
-        )}
-      </Card>
+          {targets ? (
+            <Typography variant="body" color="secondary">
+              Current target: {targets.kcalRest} kcal rest / {targets.kcalTraining} kcal training ·{' '}
+              {targets.proteinG} g protein
+            </Typography>
+          ) : (
+            <Typography variant="body" color="secondary">
+              No targets calculated yet.
+            </Typography>
+          )}
+        </Card>
 
-      <UnitsSection onChanged={() => setProfile(getProfile())} />
+        <UnitsSection onChanged={() => setProfile(getProfile())} />
 
-      <ThemeSection />
+        <ThemeSection />
 
-      <Card style={styles.card}>
-        <Typography variant="title">Goal</Typography>
-        <View style={styles.row}>
-          {GOALS.map((g) => (
-            <Button
-              key={g.goal}
-              label={g.label}
-              variant={goal === g.goal ? 'primary' : 'secondary'}
-              onPress={() => setGoal(g.goal)}
-            />
-          ))}
-        </View>
-        <TextField
-          label={profile.units === 'imperial' ? 'Rate (lb/week)' : 'Rate (kg/week)'}
-          value={rateInput}
-          onChangeText={setRateInput}
-          keyboardType="numbers-and-punctuation"
-        />
-        <Button label="Recalculate targets" onPress={onRecalculate} />
-      </Card>
+        <Card style={styles.card}>
+          <Typography variant="title">Goal</Typography>
+          <View style={styles.row}>
+            {GOALS.map((g) => (
+              <Button
+                key={g.goal}
+                label={g.label}
+                variant={goal === g.goal ? 'primary' : 'secondary'}
+                onPress={() => setGoal(g.goal)}
+              />
+            ))}
+          </View>
+          <TextField
+            label={profile.units === 'imperial' ? 'Rate (lb/week)' : 'Rate (kg/week)'}
+            value={rateInput}
+            onChangeText={setRateInput}
+            keyboardType="numbers-and-punctuation"
+          />
+          <Button label="Recalculate targets" onPress={onRecalculate} />
+        </Card>
 
-      <Card style={styles.card}>
-        <Typography variant="title">Manual target override</Typography>
-        <TextField label="Calories (rest day)" value={overrideKcal} onChangeText={setOverrideKcal} keyboardType="number-pad" />
-        <TextField label="Protein (g)" value={overrideProtein} onChangeText={setOverrideProtein} keyboardType="number-pad" />
-        <TextField label="Fat (g)" value={overrideFat} onChangeText={setOverrideFat} keyboardType="number-pad" />
-        <TextField label="Carbs (g)" value={overrideCarb} onChangeText={setOverrideCarb} keyboardType="number-pad" />
-        <TextField label="Water (ml)" value={overrideWater} onChangeText={setOverrideWater} keyboardType="number-pad" />
-        <Button label="Save override" onPress={onManualOverride} />
-      </Card>
+        <Card style={styles.card}>
+          <Typography variant="title">Manual target override</Typography>
+          <TextField label="Calories (rest day)" value={overrideKcal} onChangeText={setOverrideKcal} keyboardType="number-pad" />
+          <TextField label="Protein (g)" value={overrideProtein} onChangeText={setOverrideProtein} keyboardType="number-pad" />
+          <TextField label="Fat (g)" value={overrideFat} onChangeText={setOverrideFat} keyboardType="number-pad" />
+          <TextField label="Carbs (g)" value={overrideCarb} onChangeText={setOverrideCarb} keyboardType="number-pad" />
+          <TextField label="Water (ml)" value={overrideWater} onChangeText={setOverrideWater} keyboardType="number-pad" />
+          <Button label="Save override" onPress={onManualOverride} />
+        </Card>
 
-      <Card style={styles.card}>
-        <Typography variant="title">Export data</Typography>
-        <Typography variant="caption" color="secondary">
-          {PHOTO_EXPORT_NOTE}
-        </Typography>
-        <Button label={exporting ? 'Exporting…' : 'Export all data (JSON)'} onPress={onExportJson} disabled={exporting} />
-        <View style={styles.row}>
-          {availableExportTableNames().map((name) => (
-            <Button
-              key={name}
-              label={name}
-              variant={csvTable === name ? 'primary' : 'secondary'}
-              onPress={() => setCsvTable(name)}
-            />
-          ))}
-        </View>
-        <Button
-          variant="secondary"
-          label={exporting ? 'Exporting…' : `Export ${csvTable || '—'} (CSV)`}
-          onPress={onExportCsv}
-          disabled={!csvTable || exporting}
-        />
-        {exportMessage ? (
+        <Card style={styles.card}>
+          <Typography variant="title">Export data</Typography>
           <Typography variant="caption" color="secondary">
-            {exportMessage}
+            {PHOTO_EXPORT_NOTE}
           </Typography>
-        ) : null}
-      </Card>
+          <Button label={exporting ? 'Exporting…' : 'Export all data (JSON)'} onPress={onExportJson} disabled={exporting} />
+          <View style={styles.row}>
+            {availableExportTableNames().map((name) => (
+              <Button
+                key={name}
+                label={name}
+                variant={csvTable === name ? 'primary' : 'secondary'}
+                onPress={() => setCsvTable(name)}
+              />
+            ))}
+          </View>
+          <Button
+            variant="secondary"
+            label={exporting ? 'Exporting…' : `Export ${csvTable || '—'} (CSV)`}
+            onPress={onExportCsv}
+            disabled={!csvTable || exporting}
+          />
+          {exportMessage ? (
+            <Typography variant="caption" color="secondary">
+              {exportMessage}
+            </Typography>
+          ) : null}
+        </Card>
 
-      <Card style={styles.card}>
-        <Typography variant="title">Import data</Typography>
-        <Typography variant="caption" color="secondary">
-          Restores a previously exported JSON file. Rows that already exist locally are skipped.
-        </Typography>
-        <Button
-          variant="secondary"
-          label={importing ? 'Importing…' : 'Choose file to import'}
-          onPress={onImport}
-          disabled={importing}
-        />
-        {importMessage ? (
+        <Card style={styles.card}>
+          <Typography variant="title">Import data</Typography>
           <Typography variant="caption" color="secondary">
-            {importMessage}
+            Restores a previously exported JSON file. Rows that already exist locally are skipped.
           </Typography>
-        ) : null}
-      </Card>
+          <Button
+            variant="secondary"
+            label={importing ? 'Importing…' : 'Choose file to import'}
+            onPress={onImport}
+            disabled={importing}
+          />
+          {importMessage ? (
+            <Typography variant="caption" color="secondary">
+              {importMessage}
+            </Typography>
+          ) : null}
+        </Card>
 
-      <WaterReminderSettingsSection />
+        <WaterReminderSettingsSection />
 
-      <AppLockSettingsSection />
+        <AppLockSettingsSection />
 
-      <ActiveSessionsSection />
+        <ActiveSessionsSection />
 
-      <Button variant="secondary" label="Log out" onPress={onLogout} />
+        <Button variant="secondary" label="Log out" onPress={onLogout} />
 
-      <Card style={styles.card}>
-        <Typography variant="title">Privacy</Typography>
-        <Button variant="secondary" label="Privacy policy" onPress={() => router.push('/privacy-policy')} />
-      </Card>
+        <Card style={styles.card}>
+          <Typography variant="title">Privacy</Typography>
+          <Button variant="secondary" label="Privacy policy" onPress={() => router.push('/privacy-policy')} />
+        </Card>
 
-      <Card style={[styles.card, styles.dangerCard, { borderColor: colors.danger }]}>
-        <Typography variant="title" color="danger">
-          Delete account
-        </Typography>
-        <Typography variant="caption" color="secondary">
-          Permanently deletes your account and all data on the server, and wipes this app&apos;s data on
-          this device. This cannot be undone.
-        </Typography>
-        {deleteError ? (
-          <Typography variant="caption" color="danger">
-            {deleteError}
+        <Card style={[styles.card, styles.dangerCard, { borderColor: colors.danger }]}>
+          <Typography variant="title" color="danger">
+            Delete account
           </Typography>
-        ) : null}
-        <Button
-          variant="secondary"
-          label={deleting ? 'Deleting…' : 'Delete account'}
-          onPress={onDeleteAccount}
-          disabled={deleting}
-        />
-      </Card>
-    </ScrollView>
+          <Typography variant="caption" color="secondary">
+            Permanently deletes your account and all data on the server, and wipes this app&apos;s data on
+            this device. This cannot be undone.
+          </Typography>
+          {deleteError ? (
+            <Typography variant="caption" color="danger">
+              {deleteError}
+            </Typography>
+          ) : null}
+          <Button
+            variant="secondary"
+            label={deleting ? 'Deleting…' : 'Delete account'}
+            onPress={onDeleteAccount}
+            disabled={deleting}
+          />
+        </Card>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

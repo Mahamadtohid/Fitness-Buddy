@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
@@ -282,7 +282,12 @@ export default function FoodScreen() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+    >
       <View style={styles.header}>
         <Typography variant="headline">Food</Typography>
         <Pressable onPress={onGlobalAdd} accessibilityRole="button" accessibilityLabel="Quick add food">
@@ -378,7 +383,10 @@ export default function FoodScreen() {
       })}
 
       <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <Card style={[styles.modalCard, { backgroundColor: colors.background }]}>
             {sheet?.mode === 'menu' ? (
               <>
@@ -398,7 +406,7 @@ export default function FoodScreen() {
                     No foods match &quot;{query}&quot; — try a different search, or use Quick add instead.
                   </Typography>
                 ) : null}
-                <ScrollView style={styles.modalList}>
+                <ScrollView style={styles.modalList} keyboardShouldPersistTaps="handled">
                   {query.trim().length === 0 && recentFoodsList.length > 0 ? (
                     <>
                       <Typography variant="caption" color="secondary" style={styles.listSectionHeader}>
@@ -448,16 +456,19 @@ export default function FoodScreen() {
               </>
             ) : null}
           </Card>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={builderOpen} transparent animationType="slide" onRequestClose={() => setBuilderOpen(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <Card style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Typography variant="title">New saved meal</Typography>
             <TextField label="Name" value={builderName} onChangeText={setBuilderName} />
             <TextField label="Add food" value={builderQuery} onChangeText={onBuilderQueryChange} />
-            <ScrollView style={styles.modalList}>
+            <ScrollView style={styles.modalList} keyboardShouldPersistTaps="handled">
               {builderQuery.trim().length === 0 && recentFoodsList.length > 0 ? (
                 <>
                   <Typography variant="caption" color="secondary" style={styles.listSectionHeader}>
@@ -489,7 +500,7 @@ export default function FoodScreen() {
             <Button label="Save meal" onPress={onSaveBuilder} />
             <Button variant="secondary" label="Cancel" onPress={() => setBuilderOpen(false)} />
           </Card>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );

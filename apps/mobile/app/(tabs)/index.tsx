@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Button, Card, CircularProgress, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
@@ -152,110 +152,126 @@ export default function TodayScreen() {
     </>
   );
 
+  // Guidelines §10: `keyboardShouldPersistTaps="handled"` lets "Add" (custom water) and "Log"
+  // (weigh-in) fire on the *first* tap while their field is focused, instead of that tap being
+  // swallowed to dismiss the keyboard; blank-space taps and dragging still dismiss it. Both of
+  // those fields sit low on the screen, just above the tab bar, so the keyboard would cover them
+  // outright — hence the `KeyboardAvoidingView`. iOS only: Android resizes the window itself
+  // (`softwareKeyboardLayoutMode: "resize"`), so padding there would double-count the keyboard.
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <View style={styles.headerRow}>
-        <View>
-          <Typography variant="headline">Today</Typography>
-          <Typography variant="caption" color="secondary">
-            {today}
-          </Typography>
-        </View>
-        <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
-      </View>
-
-      <View style={styles.row}>
-        <RingStat label="Calories" eaten={summary.calories.eaten} target={summary.calories.target} unit="kcal" />
-        <RingStat label="Protein" eaten={summary.protein.eatenG} target={summary.protein.targetG} unit="g" />
-      </View>
-
-      <Card style={styles.sectionCard}>
-        <View style={styles.row}>
-          <Ionicons name="water-outline" size={18} color={colors.accent} />
-          <Typography variant="bodyStrong">
-            {summary.water.totalMl} / {Math.round(summary.water.targetMl)} ml
-          </Typography>
-        </View>
-        <Bar value={summary.water.totalMl} target={summary.water.targetMl} />
-        <View style={styles.row}>
-          <Button variant="secondary" label="+250 ml" onPress={() => onAddWater(250)} />
-          <Button variant="secondary" label="+500 ml" onPress={() => onAddWater(500)} />
-          <Button
-            variant="secondary"
-            label="Custom"
-            onPress={() => setCustomWaterOpen((v) => !v)}
-          />
-        </View>
-        {customWaterOpen ? (
-          <View style={styles.row}>
-            <View style={styles.flexInput}>
-              <TextField label="Custom (ml)" value={customWater} onChangeText={setCustomWater} keyboardType="number-pad" />
-            </View>
-            <Button label="Add" onPress={onCustomWater} />
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      >
+        <View style={styles.headerRow}>
+          <View>
+            <Typography variant="headline">Today</Typography>
+            <Typography variant="caption" color="secondary">
+              {today}
+            </Typography>
           </View>
-        ) : null}
-      </Card>
+          <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
+        </View>
 
-      {canStartWorkout ? (
-        <Pressable onPress={onStartWorkout}>
+        <View style={styles.row}>
+          <RingStat label="Calories" eaten={summary.calories.eaten} target={summary.calories.target} unit="kcal" />
+          <RingStat label="Protein" eaten={summary.protein.eatenG} target={summary.protein.targetG} unit="g" />
+        </View>
+
+        <Card style={styles.sectionCard}>
+          <View style={styles.row}>
+            <Ionicons name="water-outline" size={18} color={colors.accent} />
+            <Typography variant="bodyStrong">
+              {summary.water.totalMl} / {Math.round(summary.water.targetMl)} ml
+            </Typography>
+          </View>
+          <Bar value={summary.water.totalMl} target={summary.water.targetMl} />
+          <View style={styles.row}>
+            <Button variant="secondary" label="+250 ml" onPress={() => onAddWater(250)} />
+            <Button variant="secondary" label="+500 ml" onPress={() => onAddWater(500)} />
+            <Button
+              variant="secondary"
+              label="Custom"
+              onPress={() => setCustomWaterOpen((v) => !v)}
+            />
+          </View>
+          {customWaterOpen ? (
+            <View style={styles.row}>
+              <View style={styles.flexInput}>
+                <TextField label="Custom (ml)" value={customWater} onChangeText={setCustomWater} keyboardType="number-pad" />
+              </View>
+              <Button label="Add" onPress={onCustomWater} />
+            </View>
+          ) : null}
+        </Card>
+
+        {canStartWorkout ? (
+          <Pressable onPress={onStartWorkout}>
+            <Card style={[styles.sectionCard, styles.workoutCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.accent }]}>
+              {WorkoutCardContent}
+            </Card>
+          </Pressable>
+        ) : (
           <Card style={[styles.sectionCard, styles.workoutCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.accent }]}>
             {WorkoutCardContent}
           </Card>
-        </Pressable>
-      ) : (
-        <Card style={[styles.sectionCard, styles.workoutCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.accent }]}>
-          {WorkoutCardContent}
-        </Card>
-      )}
+        )}
 
-      {!summary.weighInLoggedToday ? (
-        <Card style={styles.sectionCard}>
-          <Typography variant="bodyStrong">Log today&apos;s weigh-in</Typography>
-          <View style={styles.row}>
-            <View style={styles.flexInput}>
-              <TextField
-                label={units === 'imperial' ? 'Weight (lb)' : 'Weight (kg)'}
-                value={weightInput}
-                onChangeText={setWeightInput}
-                keyboardType="decimal-pad"
-              />
+        {!summary.weighInLoggedToday ? (
+          <Card style={styles.sectionCard}>
+            <Typography variant="bodyStrong">Log today&apos;s weigh-in</Typography>
+            <View style={styles.row}>
+              <View style={styles.flexInput}>
+                <TextField
+                  label={units === 'imperial' ? 'Weight (lb)' : 'Weight (kg)'}
+                  value={weightInput}
+                  onChangeText={setWeightInput}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <Button label="Log" onPress={onLogWeight} />
             </View>
-            <Button label="Log" onPress={onLogWeight} />
-          </View>
-        </Card>
-      ) : null}
-
-      <Card style={styles.sectionCard}>
-        <Typography variant="bodyStrong">This week</Typography>
-        <View style={styles.weekStripRow}>
-          {summary.weekStrip.map((day) => (
-            <View key={day.localDate} style={styles.weekStripDay}>
-              <Typography variant="caption" color="secondary">
-                {WEEKDAY_LETTERS[weekdayOf(day.localDate)]}
-              </Typography>
-              <Ionicons
-                name={day.trained ? 'checkmark-circle' : 'ellipse-outline'}
-                size={22}
-                color={day.trained ? colors.accent : colors.textSecondary}
-              />
-            </View>
-          ))}
-        </View>
-        <Typography variant="caption" color="secondary">
-          {trainedCount} workouts · {foodLoggedCount}/7 days logged
-        </Typography>
-      </Card>
-
-      <Card style={styles.sectionCard}>
-        <Typography variant="bodyStrong">Sync: {status}</Typography>
-        {lastError ? (
-          <Typography variant="caption" color="danger">
-            {lastError}
-          </Typography>
+          </Card>
         ) : null}
-        <Button variant="secondary" label="Sync now" onPress={onSyncNow} />
-      </Card>
-    </ScrollView>
+
+        <Card style={styles.sectionCard}>
+          <Typography variant="bodyStrong">This week</Typography>
+          <View style={styles.weekStripRow}>
+            {summary.weekStrip.map((day) => (
+              <View key={day.localDate} style={styles.weekStripDay}>
+                <Typography variant="caption" color="secondary">
+                  {WEEKDAY_LETTERS[weekdayOf(day.localDate)]}
+                </Typography>
+                <Ionicons
+                  name={day.trained ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={22}
+                  color={day.trained ? colors.accent : colors.textSecondary}
+                />
+              </View>
+            ))}
+          </View>
+          <Typography variant="caption" color="secondary">
+            {trainedCount} workouts · {foodLoggedCount}/7 days logged
+          </Typography>
+        </Card>
+
+        <Card style={styles.sectionCard}>
+          <Typography variant="bodyStrong">Sync: {status}</Typography>
+          {lastError ? (
+            <Typography variant="caption" color="danger">
+              {lastError}
+            </Typography>
+          ) : null}
+          <Button variant="secondary" label="Sync now" onPress={onSyncNow} />
+        </Card>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

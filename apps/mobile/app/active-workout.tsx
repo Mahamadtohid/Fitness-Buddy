@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../src/design';
 import { listExercisesByMuscleGroup } from '../src/data/repositories/exerciseRepository';
@@ -147,7 +147,12 @@ export default function ActiveWorkoutScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+    >
       <Typography variant="headline">{template.name}</Typography>
 
       {restRemaining !== null ? (
@@ -235,14 +240,17 @@ export default function ActiveWorkoutScreen() {
       <Button label="Finish workout" onPress={onFinish} />
 
       <Modal visible={finishModalOpen} transparent animationType="slide" onRequestClose={() => setFinishModalOpen(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <Card style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <Typography variant="title">Finish workout</Typography>
             <TextField label="Notes (optional)" value={finishNotes} onChangeText={setFinishNotes} multiline />
             <Button label="Save & finish" onPress={() => finishAndClose(finishNotes.trim() || null)} />
             <Button variant="secondary" label="Skip" onPress={() => finishAndClose(null)} />
           </Card>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );

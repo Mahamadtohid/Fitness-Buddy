@@ -1,8 +1,17 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { Button, Card, SegmentedControl, spacing, TextField, Typography, useTheme } from '../src/design';
+import {
+  Button,
+  Card,
+  KeyboardAwareScreen,
+  SegmentedControl,
+  spacing,
+  TextField,
+  Typography,
+  type TextFieldHandle,
+} from '../src/design';
 import { calculateAgeFromBirthDate, calculateRestDayTarget, calculateTrainingDayTarget } from '../src/domain/bmr';
 import { calculateMacroTargets } from '../src/domain/macros';
 import { parseLengthInput, parseWeightInput, type Units } from '../src/domain/units';
@@ -29,7 +38,6 @@ const LIFESTYLE_OPTIONS: { value: number; label: string }[] = [
 const GOAL_DEFAULT_RATE: Record<Goal, number> = { lose: -0.5, maintain: 0, gain: 0.25 };
 
 export default function OnboardingScreen() {
-  const { colors } = useTheme();
   const [units, setUnits] = useState<Units>('metric');
   const [sex, setSex] = useState<Sex | null>(null);
   const [birthDate, setBirthDate] = useState('');
@@ -39,6 +47,9 @@ export default function OnboardingScreen() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [rateInput, setRateInput] = useState('0');
   const [error, setError] = useState<string | null>(null);
+  const heightRef = useRef<TextFieldHandle>(null);
+  const weightRef = useRef<TextFieldHandle>(null);
+  const rateRef = useRef<TextFieldHandle>(null);
 
   const onSelectGoal = (value: Goal) => {
     setGoal(value);
@@ -110,7 +121,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+    <KeyboardAwareScreen>
       <Typography variant="headline">Let&apos;s set up your targets</Typography>
       <Typography variant="body" color="secondary">
         Used once to calculate your starting calorie and protein targets (PRD §3.2) — you can
@@ -131,18 +142,34 @@ export default function OnboardingScreen() {
       </Card>
 
       <Card style={styles.card}>
-        <TextField label="Birth date (YYYY-MM-DD)" value={birthDate} onChangeText={setBirthDate} keyboardType="numbers-and-punctuation" />
         <TextField
+          label="Birth date (YYYY-MM-DD)"
+          value={birthDate}
+          onChangeText={setBirthDate}
+          keyboardType="numbers-and-punctuation"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => heightRef.current?.focus()}
+        />
+        <TextField
+          ref={heightRef}
           label={units === 'imperial' ? 'Height (in)' : 'Height (cm)'}
           value={heightInput}
           onChangeText={setHeightInput}
           keyboardType="decimal-pad"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => weightRef.current?.focus()}
         />
         <TextField
+          ref={weightRef}
           label={units === 'imperial' ? 'Current weight (lb)' : 'Current weight (kg)'}
           value={weightInput}
           onChangeText={setWeightInput}
           keyboardType="decimal-pad"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => rateRef.current?.focus()}
         />
       </Card>
 
@@ -165,7 +192,14 @@ export default function OnboardingScreen() {
           <Button label="Maintain" variant={goal === 'maintain' ? 'primary' : 'secondary'} onPress={() => onSelectGoal('maintain')} />
           <Button label="Gain" variant={goal === 'gain' ? 'primary' : 'secondary'} onPress={() => onSelectGoal('gain')} />
         </View>
-        <TextField label="Rate (kg/week, negative to lose)" value={rateInput} onChangeText={setRateInput} keyboardType="numbers-and-punctuation" />
+        <TextField
+          ref={rateRef}
+          label="Rate (kg/week, negative to lose)"
+          value={rateInput}
+          onChangeText={setRateInput}
+          keyboardType="numbers-and-punctuation"
+          returnKeyType="done"
+        />
         <Typography variant="caption" color="secondary">
           Guardrail: loss capped around 1% of body weight/week, gain around 0.5% (PRD §4.1) — the
           default above is a safe starting point.
@@ -179,13 +213,11 @@ export default function OnboardingScreen() {
       ) : null}
 
       <Button label="Save and continue" onPress={onSubmit} />
-    </ScrollView>
+    </KeyboardAwareScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: spacing.lg, gap: spacing.md },
   card: { gap: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
 });

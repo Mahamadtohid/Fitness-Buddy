@@ -1,8 +1,16 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, spacing, TextField, Typography, useTheme } from '../src/design';
+import {
+  Button,
+  Card,
+  KeyboardAwareScreen,
+  spacing,
+  TextField,
+  Typography,
+  type TextFieldHandle,
+} from '../src/design';
 import {
   createCustomExercise,
   listExercisesByMuscleGroup,
@@ -14,7 +22,6 @@ function titleCase(s: string): string {
 }
 
 export default function ExerciseLibraryScreen() {
-  const { colors } = useTheme();
   const [grouped, setGrouped] = useState<Record<string, ExerciseRow[]>>(() => listExercisesByMuscleGroup());
   const [showForm, setShowForm] = useState(false);
 
@@ -26,6 +33,11 @@ export default function ExerciseLibraryScreen() {
   const [restSeconds, setRestSeconds] = useState('90');
   const [isLowerBody, setIsLowerBody] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const muscleGroupRef = useRef<TextFieldHandle>(null);
+  const equipmentRef = useRef<TextFieldHandle>(null);
+  const repMinRef = useRef<TextFieldHandle>(null);
+  const repMaxRef = useRef<TextFieldHandle>(null);
+  const restSecondsRef = useRef<TextFieldHandle>(null);
 
   function resetForm() {
     setName('');
@@ -67,7 +79,7 @@ export default function ExerciseLibraryScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+    <KeyboardAwareScreen contentContainerStyle={styles.content}>
       <Typography variant="headline">Exercises</Typography>
 
       <Button
@@ -78,18 +90,67 @@ export default function ExerciseLibraryScreen() {
 
       {showForm ? (
         <Card style={styles.form}>
-          <TextField label="Name" value={name} onChangeText={setName} />
-          <TextField label="Muscle group" value={muscleGroup} onChangeText={setMuscleGroup} autoCapitalize="none" />
-          <TextField label="Equipment (optional)" value={equipment} onChangeText={setEquipment} />
+          <TextField
+            label="Name"
+            value={name}
+            onChangeText={setName}
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => muscleGroupRef.current?.focus()}
+          />
+          <TextField
+            ref={muscleGroupRef}
+            label="Muscle group"
+            value={muscleGroup}
+            onChangeText={setMuscleGroup}
+            autoCapitalize="none"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => equipmentRef.current?.focus()}
+          />
+          <TextField
+            ref={equipmentRef}
+            label="Equipment (optional)"
+            value={equipment}
+            onChangeText={setEquipment}
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => repMinRef.current?.focus()}
+          />
           <View style={styles.formRow}>
             <View style={styles.formInput}>
-              <TextField label="Rep min" value={repMin} onChangeText={setRepMin} keyboardType="number-pad" />
+              <TextField
+                ref={repMinRef}
+                label="Rep min"
+                value={repMin}
+                onChangeText={setRepMin}
+                keyboardType="number-pad"
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => repMaxRef.current?.focus()}
+              />
             </View>
             <View style={styles.formInput}>
-              <TextField label="Rep max" value={repMax} onChangeText={setRepMax} keyboardType="number-pad" />
+              <TextField
+                ref={repMaxRef}
+                label="Rep max"
+                value={repMax}
+                onChangeText={setRepMax}
+                keyboardType="number-pad"
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => restSecondsRef.current?.focus()}
+              />
             </View>
             <View style={styles.formInput}>
-              <TextField label="Rest (s)" value={restSeconds} onChangeText={setRestSeconds} keyboardType="number-pad" />
+              <TextField
+                ref={restSecondsRef}
+                label="Rest (s)"
+                value={restSeconds}
+                onChangeText={setRestSeconds}
+                keyboardType="number-pad"
+                returnKeyType="done"
+              />
             </View>
           </View>
           <Button
@@ -132,17 +193,14 @@ export default function ExerciseLibraryScreen() {
           ))}
         </View>
       ))}
-    </ScrollView>
+    </KeyboardAwareScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  // KeyboardAwareScreen already supplies `padding: spacing.lg` / `gap: spacing.md`; this screen only
+  // needs the extra bottom breathing room its long list had before.
   content: {
-    padding: spacing.lg,
-    gap: spacing.md,
     paddingBottom: spacing.xxl,
   },
   form: {
