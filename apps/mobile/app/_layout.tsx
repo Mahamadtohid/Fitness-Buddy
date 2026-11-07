@@ -1,17 +1,30 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Image, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 
-import { ThemeProvider, useTheme } from '../src/design';
+import { ThemeProvider } from '../src/design';
 import { useAuthStore } from '../src/features/account/useAuthStore';
 import { getProfile } from '../src/data/repositories/profileRepository';
 import { AppLockGate } from '../src/features/security/components/AppLockGate';
 import { useAppLockStore } from '../src/features/security/useAppLockStore';
 
+// Keeps the native splash (the same branded image, configured in app.json's expo-splash-screen
+// plugin) on screen through the auth bootstrap below, instead of it auto-hiding on first frame and
+// leaving a blank gap before the app knows whether to show the tabs or the welcome screen.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Shown only if bootstrap somehow outlasts the native splash — the same full-bleed branded image,
+// so there's no visible seam between the native splash and this JS fallback.
 function LoadingScreen() {
-  const { colors } = useTheme();
-  return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  return (
+    <Image
+      source={require('../assets/splash-background.png')}
+      style={StyleSheet.absoluteFill}
+      resizeMode="cover"
+    />
+  );
 }
 
 function RootNavigator() {
@@ -28,6 +41,12 @@ function RootNavigator() {
   useEffect(() => {
     void bootstrapAppLock();
   }, [bootstrapAppLock]);
+
+  useEffect(() => {
+    if (status !== 'idle') {
+      void SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [status]);
 
   useEffect(() => {
     if (status === 'idle') return;
