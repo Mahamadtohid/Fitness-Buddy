@@ -74,7 +74,7 @@ export const useAppLockStore = create<AppLockState>((set, get) => ({
     if (!isEnrolled) return false;
 
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Unlock Fitness Companion',
+      promptMessage: 'Unlock FitTrack',
     });
     if (!result.success) return false;
 
