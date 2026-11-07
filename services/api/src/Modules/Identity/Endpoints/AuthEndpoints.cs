@@ -52,6 +52,7 @@ public static class AuthEndpoints
         {
             UserName = request.Email,
             Email = request.Email,
+            FullName = string.IsNullOrWhiteSpace(request.FullName) ? null : request.FullName.Trim(),
         };
 
         var createResult = await userManager.CreateAsync(user, request.Password);

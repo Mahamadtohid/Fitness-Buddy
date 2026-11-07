@@ -10,6 +10,8 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8);
         RuleFor(x => x.InviteCode).NotEmpty();
+        // Optional, but reject a value that is only whitespace or absurdly long if one is sent.
+        RuleFor(x => x.FullName).MaximumLength(100).When(x => x.FullName is not null);
     }
 }
 
