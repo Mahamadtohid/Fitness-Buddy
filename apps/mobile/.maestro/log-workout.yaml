@@ -13,4 +13,8 @@ appId: com.fitnesscompanion.app
 - tapOn: "Confirm"
 - assertVisible: "Resting"
 - tapOn: "Finish workout"
+# Phase 7 added an optional notes prompt here — "Finish workout" now opens a modal instead of
+# finishing immediately. "Skip" dismisses it without notes and actually completes the session.
+- assertVisible: "Save & finish"
+- tapOn: "Skip"
 - assertVisible: "Train"
