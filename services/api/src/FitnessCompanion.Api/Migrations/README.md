@@ -81,3 +81,19 @@ cd services/api
 dotnet ef migrations add AddNutritionProfileEntities --project src/FitnessCompanion.Api --output-dir Migrations
 dotnet ef database update --project src/FitnessCompanion.Api
 ```
+
+## Phase 5 addition: progress measurements and weekly check-in
+
+`AddProgressCheckInEntities` adds, on top of the above:
+- `Measurements` table (PRD §8.3 `measurement`) — append-mostly, no extra uniqueness, same shape
+  as `SetEntries`.
+- `CheckIns` table (PRD §8.3 `check_in`) with a unique index on `(UserId, WeekStart)` filtered to
+  live rows. Conflict rule is deliberately different from every other unique-keyed entity: PRD
+  §4.4's "first one created wins" means a different device's independently-created row for the
+  same week always loses, regardless of timestamp — see `CheckInConflictResolver`.
+
+```bash
+cd services/api
+dotnet ef migrations add AddProgressCheckInEntities --project src/FitnessCompanion.Api --output-dir Migrations
+dotnet ef database update --project src/FitnessCompanion.Api
+```

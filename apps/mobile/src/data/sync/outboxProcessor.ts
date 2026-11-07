@@ -3,10 +3,12 @@ import { eq } from 'drizzle-orm';
 import type { SyncOpDto, SyncOpResultDto } from '../api/client';
 import { getDb } from '../db/client';
 import {
+  checkIn,
   exercise,
   food,
   foodEntry,
   foodOverride,
+  measurement,
   outbox,
   profile,
   savedMeal,
@@ -20,10 +22,12 @@ import {
   type OutboxRow,
 } from '../db/schema';
 import {
+  decideCheckInPushResult,
   decideCustomExercisePushResult,
   decideCustomFoodPushResult,
   decideFoodEntryPushResult,
   decideFoodOverridePushResult,
+  decideMeasurementPushResult,
   decidePushResult,
   decideProfilePushResult,
   decideSavedMealPushResult,
@@ -156,6 +160,24 @@ function applyResult(db: ReturnType<typeof getDb>, entity: string, recordId: str
       const action = decideWaterEntryPushResult(result);
       if (action.action === 'remove-outbox-and-update-entry') {
         db.update(waterEntry).set(action.patch).where(eq(waterEntry.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'measurement': {
+      const action = decideMeasurementPushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(measurement).set(action.patch).where(eq(measurement.id, recordId)).run();
+      } else if (action.action === 'remove-outbox-and-record-error') {
+        useSyncStatusStore.getState().setStatus('error', action.reason);
+      }
+      return;
+    }
+    case 'check_in': {
+      const action = decideCheckInPushResult(result);
+      if (action.action === 'remove-outbox-and-update-entry') {
+        db.update(checkIn).set(action.patch).where(eq(checkIn.id, recordId)).run();
       } else if (action.action === 'remove-outbox-and-record-error') {
         useSyncStatusStore.getState().setStatus('error', action.reason);
       }

@@ -1,9 +1,11 @@
 import type { SyncOpResultDto } from '../api/client';
 import type {
+  CheckInRow,
   ExerciseRow,
   FoodEntryRow,
   FoodOverrideRow,
   FoodRow,
+  MeasurementRow,
   ProfileRow,
   SavedMealRow,
   ScheduleEntryRow,
@@ -286,6 +288,35 @@ export function decideWaterEntryPushResult(result: SyncOpResultDto): PushResultA
     localDate: payload.localDate,
     loggedAt: payload.loggedAt,
     ml: payload.ml,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type MeasurementPayload = { localDate: string; type: string; valueCm: number; clientUpdatedAt: string };
+
+export function decideMeasurementPushResult(result: SyncOpResultDto): PushResultAction<MeasurementRow> {
+  return decideGenericPushResult<MeasurementRow, MeasurementPayload>(result, (payload) => ({
+    localDate: payload.localDate,
+    type: payload.type,
+    valueCm: payload.valueCm,
+    clientUpdatedAt: payload.clientUpdatedAt,
+  }));
+}
+
+type CheckInPayload = {
+  weekStart: string;
+  trendChange: number;
+  suggestedKcal: number;
+  decision: string;
+  clientUpdatedAt: string;
+};
+
+export function decideCheckInPushResult(result: SyncOpResultDto): PushResultAction<CheckInRow> {
+  return decideGenericPushResult<CheckInRow, CheckInPayload>(result, (payload) => ({
+    weekStart: payload.weekStart,
+    trendChange: payload.trendChange,
+    suggestedKcal: payload.suggestedKcal,
+    decision: payload.decision,
     clientUpdatedAt: payload.clientUpdatedAt,
   }));
 }

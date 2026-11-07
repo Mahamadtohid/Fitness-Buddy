@@ -240,6 +240,47 @@ export const waterEntry = sqliteTable('water_entry', {
   deletedAt: text('deleted_at'),
 });
 
+/** Append-mostly, same shape as `setEntry` (PRD §8.3 `measurement`). */
+export const measurement = sqliteTable('measurement', {
+  id: text('id').primaryKey(),
+  localDate: text('local_date').notNull(),
+  type: text('type').notNull(), // 'waist' | 'chest' | 'arm' | 'thigh'
+  valueCm: real('value_cm').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  clientUpdatedAt: text('client_updated_at').notNull(),
+  version: integer('version').notNull().default(0),
+  serverSeq: integer('server_seq').notNull().default(0),
+  deletedAt: text('deleted_at'),
+});
+
+/** Unique per week (PRD §8.3 `check_in`: "Unique per user per week"). `decision` can also be the
+ * LOCAL-ONLY value `'pending'` — a generated-but-undecided check-in that hasn't been pushed yet
+ * (see `checkInRepository.ts`'s module doc for why); the server only ever sees
+ * `'accepted'|'edited'|'skipped'`. */
+export const checkIn = sqliteTable('check_in', {
+  id: text('id').primaryKey(),
+  weekStart: text('week_start').notNull().unique(),
+  trendChange: real('trend_change').notNull(),
+  suggestedKcal: real('suggested_kcal').notNull(),
+  decision: text('decision').notNull(), // 'pending' | 'accepted' | 'edited' | 'skipped'
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  clientUpdatedAt: text('client_updated_at').notNull(),
+  version: integer('version').notNull().default(0),
+  serverSeq: integer('server_seq').notNull().default(0),
+  deletedAt: text('deleted_at'),
+});
+
+/** LOCAL ONLY (PRD §8.3 `photo`: "Not synced in v1") — no sync columns at all, no outbox, no
+ * server table. `filePath` points into the app's own document directory. */
+export const photo = sqliteTable('photo', {
+  id: text('id').primaryKey(),
+  localDate: text('local_date').notNull(),
+  pose: text('pose').notNull(), // 'front' | 'side' | 'back'
+  filePath: text('file_path').notNull(),
+});
+
 export type WeightEntryRow = typeof weightEntry.$inferSelect;
 export type OutboxRow = typeof outbox.$inferSelect;
 export type SyncStateRow = typeof syncState.$inferSelect;
@@ -255,3 +296,6 @@ export type FoodOverrideRow = typeof foodOverride.$inferSelect;
 export type SavedMealRow = typeof savedMeal.$inferSelect;
 export type FoodEntryRow = typeof foodEntry.$inferSelect;
 export type WaterEntryRow = typeof waterEntry.$inferSelect;
+export type MeasurementRow = typeof measurement.$inferSelect;
+export type CheckInRow = typeof checkIn.$inferSelect;
+export type PhotoRow = typeof photo.$inferSelect;

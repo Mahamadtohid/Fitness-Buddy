@@ -1,8 +1,10 @@
 import type {
+  CheckInRow,
   ExerciseRow,
   FoodEntryRow,
   FoodOverrideRow,
   FoodRow,
+  MeasurementRow,
   ProfileRow,
   SavedMealRow,
   ScheduleEntryRow,
@@ -601,6 +603,80 @@ export function decideWaterEntryPullApply(params: {
         localDate: p.localDate,
         loggedAt: p.loggedAt,
         ml: p.ml,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type MeasurementPayload = { localDate: string; type: string; valueCm: number; clientUpdatedAt: string };
+
+export function decideMeasurementPullApply(params: {
+  item: PulledItem;
+  existing: MeasurementRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<MeasurementRow> {
+  return decideGenericPullApply<MeasurementRow, MeasurementPayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        localDate: existing?.localDate ?? '',
+        type: existing?.type ?? 'waist',
+        valueCm: existing?.valueCm ?? 0,
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        localDate: p.localDate,
+        type: p.type,
+        valueCm: p.valueCm,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        clientUpdatedAt: p.clientUpdatedAt,
+        version: params.item.version,
+        serverSeq: params.item.serverSeq,
+        deletedAt: params.item.deletedAt,
+      };
+    },
+  });
+}
+
+type CheckInPayload = {
+  weekStart: string;
+  trendChange: number;
+  suggestedKcal: number;
+  decision: string;
+  clientUpdatedAt: string;
+};
+
+export function decideCheckInPullApply(params: {
+  item: PulledItem;
+  existing: CheckInRow | null;
+  hasPendingOutbox: boolean;
+  now: string;
+}): ApplyDecision<CheckInRow> {
+  return decideGenericPullApply<CheckInRow, CheckInPayload>({
+    ...params,
+    buildRow: (payload, existing, now) => {
+      const p = payload ?? {
+        weekStart: existing?.weekStart ?? '',
+        trendChange: existing?.trendChange ?? 0,
+        suggestedKcal: existing?.suggestedKcal ?? 0,
+        decision: existing?.decision ?? 'pending',
+        clientUpdatedAt: existing?.clientUpdatedAt ?? now,
+      };
+      return {
+        id: params.item.recordId,
+        weekStart: p.weekStart,
+        trendChange: p.trendChange,
+        suggestedKcal: p.suggestedKcal,
+        decision: p.decision,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         clientUpdatedAt: p.clientUpdatedAt,
