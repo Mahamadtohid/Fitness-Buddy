@@ -35,16 +35,26 @@ function Bar({ value, target }: { value: number; target: number }) {
 export default function TodayScreen() {
   const { colors } = useTheme();
   const { status, lastError } = useSyncStatusStore();
+  const today = getLocalDateString();
+  const weekday = weekdayOf(today);
+
+  function scheduledTemplateIdFor(day: number): string | null {
+    return getSchedule().find((s) => s.weekday === day && !s.deletedAt)?.templateId ?? null;
+  }
+
   const [summary, setSummary] = useState<TodaySummary>(() => getTodaySummary());
+  // Queried once per refresh (focus/after an action), not on every render — this used to be a
+  // live DB query (`getSchedule()`) called directly in the render body, so it re-ran on every
+  // keystroke in this screen's two text fields too.
+  const [scheduledTemplateId, setScheduledTemplateId] = useState<string | null>(() => scheduledTemplateIdFor(weekday));
   const [weightInput, setWeightInput] = useState('');
   const [customWater, setCustomWater] = useState('');
 
-  const refresh = useCallback(() => setSummary(getTodaySummary()), []);
+  const refresh = useCallback(() => {
+    setSummary(getTodaySummary());
+    setScheduledTemplateId(scheduledTemplateIdFor(weekday));
+  }, [weekday]);
   useFocusEffect(refresh);
-
-  const today = getLocalDateString();
-  const weekday = weekdayOf(today);
-  const scheduledTemplateId = getSchedule().find((s) => s.weekday === weekday && !s.deletedAt)?.templateId ?? null;
 
   const onAddWater = (ml: number) => {
     logWater(ml);

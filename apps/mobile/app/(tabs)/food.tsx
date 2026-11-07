@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
@@ -49,7 +49,7 @@ export default function FoodScreen() {
   const [builderResults, setBuilderResults] = useState<FoodRow[]>([]);
   const [builderItems, setBuilderItems] = useState<BuilderItem[]>([]);
 
-  const nutritionFor = (entry: FoodEntryRow): { kcal: number; proteinG: number } => {
+  function nutritionFor(entry: FoodEntryRow): { kcal: number; proteinG: number } {
     if (entry.foodId) {
       const resolved = resolvedNutritionFor(entry.foodId);
       return resolved
@@ -60,15 +60,29 @@ export default function FoodScreen() {
       kcal: (entry.quickAddKcal ?? 0) * entry.servings,
       proteinG: (entry.quickAddProteinG ?? 0) * entry.servings,
     };
-  };
+  }
 
-  const totals = entries.reduce(
-    (acc, entry) => {
-      const n = nutritionFor(entry);
-      return { kcal: acc.kcal + n.kcal, proteinG: acc.proteinG + n.proteinG };
-    },
-    { kcal: 0, proteinG: 0 },
-  );
+  // `resolvedNutritionFor` hits SQLite (base food + override lookup) per entry — computing this
+  // once per entry here, keyed only on `entries`, is what keeps typing in any of this screen's
+  // text fields from re-running up to 2x N queries on every keystroke (it previously ran inline
+  // in the render body, with no memoization at all).
+  const nutritionByEntryId = useMemo(() => {
+    const map = new Map<string, { kcal: number; proteinG: number }>();
+    for (const entry of entries) {
+      map.set(entry.id, nutritionFor(entry));
+    }
+    return map;
+  }, [entries]);
+
+  const totals = useMemo(() => {
+    let kcal = 0;
+    let proteinG = 0;
+    for (const n of nutritionByEntryId.values()) {
+      kcal += n.kcal;
+      proteinG += n.proteinG;
+    }
+    return { kcal, proteinG };
+  }, [nutritionByEntryId]);
 
   const entryName = (entry: FoodEntryRow): string =>
     entry.foodId ? foodNameById(entry.foodId) : (entry.quickAddName ?? 'Quick add');
@@ -191,7 +205,7 @@ export default function FoodScreen() {
               </Typography>
             ) : (
               slotEntries.map((entry) => {
-                const n = nutritionFor(entry);
+                const n = nutritionByEntryId.get(entry.id) ?? { kcal: 0, proteinG: 0 };
                 return (
                   <View key={entry.id} style={[styles.entryRow, { borderBottomColor: colors.border }]}>
                     <Typography variant="body">{entryName(entry)}</Typography>

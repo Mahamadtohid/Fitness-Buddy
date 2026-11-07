@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { FlatList, Image, StyleSheet, View } from 'react-native';
 
@@ -15,7 +15,7 @@ import { savePhoto, listPhotos, type Pose } from '../../src/data/repositories/ph
 
 const TREND_WINDOW_DAYS = 30;
 
-function TrendBars({ series }: { series: { localDate: string; trend: number }[] }) {
+const TrendBars = memo(function TrendBars({ series }: { series: { localDate: string; trend: number }[] }) {
   const { colors } = useTheme();
   const window = series.slice(-TREND_WINDOW_DAYS);
   if (window.length === 0) {
@@ -45,7 +45,7 @@ function TrendBars({ series }: { series: { localDate: string; trend: number }[] 
       })}
     </View>
   );
-}
+});
 
 const MEASUREMENT_TYPES: { type: MeasurementType; label: string }[] = [
   { type: 'waist', label: 'Waist' },
@@ -69,7 +69,7 @@ function signedKcal(value: number): string {
  * this local week, generates a new one if the readiness gate is met, or a plain "not ready yet"
  * message otherwise. A `'pending'` decision is the only actionable state; anything else (already
  * decided, this device or another) renders as a past record. */
-function CheckInCard({ onDecided }: { onDecided: () => void }) {
+const CheckInCard = memo(function CheckInCard({ onDecided }: { onDecided: () => void }) {
   // Re-evaluated by remounting this component (see the `key={checkInVersion}` below) rather than
   // local setState — a decision changes which card variant renders, which is simplest as a fresh
   // read of local state on remount.
@@ -151,9 +151,9 @@ function CheckInCard({ onDecided }: { onDecided: () => void }) {
       )}
     </Card>
   );
-}
+});
 
-function MeasurementsSection() {
+const MeasurementsSection = memo(function MeasurementsSection() {
   const [type, setType] = useState<MeasurementType>('waist');
   const [value, setValue] = useState('');
   const [rows, setRows] = useState<MeasurementRow[]>(() => listByType('waist'));
@@ -199,9 +199,9 @@ function MeasurementsSection() {
       ))}
     </Card>
   );
-}
+});
 
-function PhotosSection() {
+const PhotosSection = memo(function PhotosSection() {
   const { colors } = useTheme();
   const [pose, setPose] = useState<Pose>('front');
   const [photos, setPhotos] = useState<PhotoRow[]>(() => listPhotos('front'));
@@ -296,7 +296,7 @@ function PhotosSection() {
       </View>
     </Card>
   );
-}
+});
 
 /**
  * Progress tab (PRD §3.5, §4.3, §4.4) — trend chart (plain bars, no chart library), the weekly
@@ -326,8 +326,14 @@ export default function ProgressScreen() {
     refresh();
   };
 
-  const trendSeries = calculateTrendSeries(entries.map((e) => ({ localDate: e.localDate, weightKg: e.weightKg })));
-  const weeklyRate = weeklyRateFromSeries(trendSeries);
+  // Memoized so typing in the weigh-in input (or any state change in a sibling section) doesn't
+  // re-run the EMA trend calculation over the full weigh-in history on every keystroke.
+  const trendSeries = useMemo(
+    () => calculateTrendSeries(entries.map((e) => ({ localDate: e.localDate, weightKg: e.weightKg }))),
+    [entries],
+  );
+  const weeklyRate = useMemo(() => weeklyRateFromSeries(trendSeries), [trendSeries]);
+  const onCheckInDecided = useCallback(() => setCheckInVersion((v) => v + 1), []);
 
   return (
     <FlatList
@@ -359,7 +365,7 @@ export default function ProgressScreen() {
             </Typography>
           </Card>
 
-          <CheckInCard onDecided={() => setCheckInVersion((v) => v + 1)} key={checkInVersion} />
+          <CheckInCard onDecided={onCheckInDecided} key={checkInVersion} />
 
           <MeasurementsSection />
           <PhotosSection />
