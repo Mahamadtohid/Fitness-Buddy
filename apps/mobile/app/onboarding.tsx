@@ -58,42 +58,48 @@ export default function OnboardingScreen() {
       return;
     }
 
-    const today = getLocalDateString();
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const ageYears = calculateAgeFromBirthDate(birthDate.trim());
+    try {
+      const today = getLocalDateString();
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const ageYears = calculateAgeFromBirthDate(birthDate.trim());
 
-    logWeight(today, weightKg);
+      logWeight(today, weightKg);
 
-    saveProfile({
-      sex,
-      birthDate: birthDate.trim(),
-      heightCm,
-      lifestyleFactor,
-      goal,
-      rateKgPerWeek,
-      units: 'metric',
-      timeZone,
-    });
+      saveProfile({
+        sex,
+        birthDate: birthDate.trim(),
+        heightCm,
+        lifestyleFactor,
+        goal,
+        rateKgPerWeek,
+        units: 'metric',
+        timeZone,
+      });
 
-    const bmrInput = { sex, weightKg, heightCm, ageYears, lifestyleFactor, rateKgPerWeek };
-    const kcalRest = Math.round(calculateRestDayTarget(bmrInput));
-    const kcalTraining = Math.round(calculateTrainingDayTarget(bmrInput));
-    const { proteinG, fatG, carbG } = calculateMacroTargets(kcalRest, { weightKg, heightCm });
+      const bmrInput = { sex, weightKg, heightCm, ageYears, lifestyleFactor, rateKgPerWeek };
+      const kcalRest = Math.round(calculateRestDayTarget(bmrInput));
+      const kcalTraining = Math.round(calculateTrainingDayTarget(bmrInput));
+      const { proteinG, fatG, carbG } = calculateMacroTargets(kcalRest, { weightKg, heightCm });
 
-    createTargets(
-      {
-        effectiveFrom: today,
-        kcalRest,
-        kcalTraining,
-        proteinG: Math.round(proteinG),
-        fatG: Math.round(fatG),
-        carbG: Math.round(carbG),
-        waterMl: Math.round(waterTargetMl()),
-      },
-      'auto',
-    );
+      createTargets(
+        {
+          effectiveFrom: today,
+          kcalRest,
+          kcalTraining,
+          proteinG: Math.round(proteinG),
+          fatG: Math.round(fatG),
+          carbG: Math.round(carbG),
+          waterMl: Math.round(waterTargetMl()),
+        },
+        'auto',
+      );
 
-    router.replace('/(tabs)');
+      router.replace('/(tabs)');
+    } catch (err) {
+      // None of the calls above touch the network, but a local-DB failure here would otherwise
+      // be a silent dead end on the one screen a brand-new account can't get past — surface it.
+      setError(err instanceof Error ? err.message : 'Something went wrong saving your profile — please try again.');
+    }
   };
 
   return (

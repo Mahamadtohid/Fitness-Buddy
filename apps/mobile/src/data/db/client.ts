@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/expo-sqlite';
-import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
+import { deleteDatabaseSync, openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 
 import * as schema from './schema';
 import { SEED_EXERCISES } from './seedExercises';
@@ -270,7 +270,10 @@ CREATE TABLE IF NOT EXISTS photo (
 );
 `;
 
+const DB_NAME = 'fitness-companion.db';
+
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+let rawInstance: SQLiteDatabase | null = null;
 
 function openAndBootstrap(name: string): SQLiteDatabase {
   const instance = openDatabaseSync(name);
@@ -345,9 +348,33 @@ function seedFoodCatalogIfEmpty(instance: ReturnType<typeof drizzle<typeof schem
 
 export function getDb() {
   if (!db) {
-    db = drizzle(openAndBootstrap('fitness-companion.db'), { schema });
+    rawInstance = openAndBootstrap(DB_NAME);
+    db = drizzle(rawInstance, { schema });
     seedExerciseCatalogIfEmpty(db);
     seedFoodCatalogIfEmpty(db);
   }
   return db;
+}
+
+/**
+ * Wipes every local table (PRD §7.9: account deletion must wipe local data on the device, not
+ * just the server side) and clears the cached connection so the next `getDb()` call reopens a
+ * fresh database and reseeds the shared catalogs from scratch — the same state a brand-new
+ * install would have. Closes the existing connection first so the delete isn't blocked by an open
+ * handle.
+ */
+export function resetLocalDatabase(): void {
+  try {
+    rawInstance?.closeSync();
+  } catch {
+    // Already closed or never opened — fine, we're about to delete the file regardless.
+  }
+  rawInstance = null;
+  db = null;
+
+  try {
+    deleteDatabaseSync(DB_NAME);
+  } catch {
+    // No existing database file (e.g. called before anything was ever logged) — nothing to delete.
+  }
 }

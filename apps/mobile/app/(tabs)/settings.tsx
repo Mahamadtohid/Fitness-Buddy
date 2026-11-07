@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
+import { router } from 'expo-router';
 
 import { Button, Card, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { getProfile, saveProfile } from '../../src/data/repositories/profileRepository';
@@ -37,6 +38,9 @@ const GOALS: { goal: Goal; label: string }[] = [
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const logout = useAuthStore((s) => s.logout);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [profile, setProfile] = useState<ProfileRow | null>(() => getProfile());
   const [targets, setTargets] = useState<TargetRow | null>(() => latestTargets());
@@ -50,6 +54,9 @@ export default function SettingsScreen() {
   const [overrideWater, setOverrideWater] = useState('');
   const [csvTable, setCsvTable] = useState(availableExportTableNames()[0] ?? '');
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const onRecalculate = () => {
     if (!profile) return;
@@ -132,15 +139,65 @@ export default function SettingsScreen() {
     // (auth)/welcome as soon as `status` flips to 'unauthenticated'.
   };
 
+  /** PRD §3.1/§7.9 — irreversible, so a double confirmation (the destructive `Alert` button is
+   * itself the second step after tapping "Delete account" below) before actually calling it. */
+  const onDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your account and all data on the server, and wipes this app’s data on this device. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: () => {
+            setDeleteError(null);
+            setDeleting(true);
+            deleteAccount()
+              .catch((err: unknown) => {
+                setDeleteError(err instanceof Error ? err.message : 'Could not delete your account — try again.');
+              })
+              .finally(() => setDeleting(false));
+          },
+        },
+      ],
+    );
+  };
+
   const onExportJson = async () => {
-    const json = exportToJson();
-    await writeAndShareFile(`fitness-companion-export-${getLocalDateString()}.json`, JSON.stringify(json, null, 2));
+    setExportMessage(null);
+    setExporting(true);
+    try {
+      const json = exportToJson();
+      const shared = await writeAndShareFile(
+        `fitness-companion-export-${getLocalDateString()}.json`,
+        JSON.stringify(json, null, 2),
+      );
+      setExportMessage(
+        shared ? 'Exported and ready to save/send.' : 'Exported, but sharing isn’t available on this device.',
+      );
+    } catch (err) {
+      setExportMessage(err instanceof Error ? err.message : 'Export failed — please try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const onExportCsv = async () => {
     if (!csvTable) return;
-    const csv = exportTableToCsv(csvTable);
-    await writeAndShareFile(`${csvTable}-${getLocalDateString()}.csv`, csv);
+    setExportMessage(null);
+    setExporting(true);
+    try {
+      const csv = exportTableToCsv(csvTable);
+      const shared = await writeAndShareFile(`${csvTable}-${getLocalDateString()}.csv`, csv);
+      setExportMessage(
+        shared ? 'Exported and ready to save/send.' : 'Exported, but sharing isn’t available on this device.',
+      );
+    } catch (err) {
+      setExportMessage(err instanceof Error ? err.message : 'Export failed — please try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const onImport = async () => {
@@ -148,12 +205,15 @@ export default function SettingsScreen() {
     const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
     if (result.canceled || !result.assets?.[0]) return;
 
+    setImporting(true);
     try {
       const json = await new File(result.assets[0].uri).json();
       importFromJson(json);
       setImportMessage('Import complete.');
     } catch {
       setImportMessage('That file could not be read as a valid export — import skipped.');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -217,7 +277,7 @@ export default function SettingsScreen() {
         <Typography variant="caption" color="secondary">
           {PHOTO_EXPORT_NOTE}
         </Typography>
-        <Button label="Export all data (JSON)" onPress={onExportJson} />
+        <Button label={exporting ? 'Exporting…' : 'Export all data (JSON)'} onPress={onExportJson} disabled={exporting} />
         <View style={styles.row}>
           {availableExportTableNames().map((name) => (
             <Button
@@ -228,7 +288,17 @@ export default function SettingsScreen() {
             />
           ))}
         </View>
-        <Button variant="secondary" label={`Export ${csvTable || '—'} (CSV)`} onPress={onExportCsv} disabled={!csvTable} />
+        <Button
+          variant="secondary"
+          label={exporting ? 'Exporting…' : `Export ${csvTable || '—'} (CSV)`}
+          onPress={onExportCsv}
+          disabled={!csvTable || exporting}
+        />
+        {exportMessage ? (
+          <Typography variant="caption" color="secondary">
+            {exportMessage}
+          </Typography>
+        ) : null}
       </Card>
 
       <Card style={styles.card}>
@@ -236,7 +306,12 @@ export default function SettingsScreen() {
         <Typography variant="caption" color="secondary">
           Restores a previously exported JSON file. Rows that already exist locally are skipped.
         </Typography>
-        <Button variant="secondary" label="Choose file to import" onPress={onImport} />
+        <Button
+          variant="secondary"
+          label={importing ? 'Importing…' : 'Choose file to import'}
+          onPress={onImport}
+          disabled={importing}
+        />
         {importMessage ? (
           <Typography variant="caption" color="secondary">
             {importMessage}
@@ -245,6 +320,32 @@ export default function SettingsScreen() {
       </Card>
 
       <Button variant="secondary" label="Log out" onPress={onLogout} />
+
+      <Card style={styles.card}>
+        <Typography variant="title">Privacy</Typography>
+        <Button variant="secondary" label="Privacy policy" onPress={() => router.push('/privacy-policy')} />
+      </Card>
+
+      <Card style={[styles.card, styles.dangerCard, { borderColor: colors.danger }]}>
+        <Typography variant="title" color="danger">
+          Delete account
+        </Typography>
+        <Typography variant="caption" color="secondary">
+          Permanently deletes your account and all data on the server, and wipes this app&apos;s data on
+          this device. This cannot be undone.
+        </Typography>
+        {deleteError ? (
+          <Typography variant="caption" color="danger">
+            {deleteError}
+          </Typography>
+        ) : null}
+        <Button
+          variant="secondary"
+          label={deleting ? 'Deleting…' : 'Delete account'}
+          onPress={onDeleteAccount}
+          disabled={deleting}
+        />
+      </Card>
     </ScrollView>
   );
 }
@@ -254,5 +355,6 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
   emptyPadding: { padding: spacing.lg },
   card: { gap: spacing.sm },
+  dangerCard: { borderWidth: 1 },
   row: { flexDirection: 'row', gap: spacing.sm },
 });

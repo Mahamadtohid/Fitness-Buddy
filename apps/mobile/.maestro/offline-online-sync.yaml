@@ -1,0 +1,27 @@
+# PRD §3.1 acceptance criterion: "with airplane mode on after initial sync, I can log a full day;
+# after reconnecting, everything appears on the server once, with no duplicates." Unverified (see
+# .maestro/README.md) — `setAirplaneMode` needs a Maestro/platform combo that actually supports
+# toggling it (reliable on Android emulators; less consistent on iOS simulators per Maestro's own
+# docs). Assumes an already logged-in, onboarded account, starting from the Progress tab.
+appId: com.fitnesscompanion.app
+---
+- launchApp
+- tapOn: "Progress"
+- assertVisible: "Sync: synced"
+- setAirplaneMode: true
+# Give the sync engine a moment to notice the network drop (scheduler.ts's NetInfo listener).
+- extendedWaitUntil:
+    visible: "Sync: offline"
+    timeout: 15000
+- tapOn: "Weight (kg)"
+- inputText: "76.5"
+- tapOn: "Log weight"
+- assertVisible: "76.5"
+- setAirplaneMode: false
+- tapOn: "Sync now"
+- extendedWaitUntil:
+    visible: "Sync: synced"
+    timeout: 20000
+# No duplicate-detection assertion here beyond "still exactly one 76.5 row visible" — Maestro
+# doesn't give an easy way to assert an *absence* of extra rows; a real pass of this flow should be
+# manually eyeballed against the server (e.g. via `GET /api/v1/export`) the first time it's run.

@@ -1,0 +1,33 @@
+# PRD §10 "Onboarding" E2E flow. Unverified — no Maestro/emulator available when this was written
+# (see .maestro/README.md). Requires a real, unused invite code passed as INVITE_CODE.
+appId: com.fitnesscompanion.app
+env:
+  INVITE_CODE: "REPLACE_ME"
+  TEST_EMAIL: "maestro-test@example.com"
+  TEST_PASSWORD: "TestPassword123!"
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Fitness Companion"
+- tapOn: "Sign up with invite code"
+- tapOn: "Invite code"
+- inputText: "${INVITE_CODE}"
+- tapOn: "Email"
+- inputText: "${TEST_EMAIL}"
+- tapOn: "Password"
+- inputText: "${TEST_PASSWORD}"
+- tapOn: "Create account"
+- assertVisible: "Before you start"
+- tapOn: "I agree, continue"
+- assertVisible: "Let's set up your targets"
+- tapOn: "Male"
+- tapOn: "Birth date (YYYY-MM-DD)"
+- inputText: "1995-06-15"
+- tapOn: "Height (cm)"
+- inputText: "178"
+- tapOn: "Current weight (kg)"
+- inputText: "75"
+- tapOn: "Some walking"
+- tapOn: "Maintain"
+- tapOn: "Save and continue"
+- assertVisible: "Today"
