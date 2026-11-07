@@ -1,8 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { Button, Card, CircularProgress, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { getTodaySummary, type TodaySummary } from '../../src/data/repositories/todaySummary';
 import { logWater } from '../../src/data/repositories/waterEntryRepository';
 import { logWeight } from '../../src/data/repositories/weightEntryRepository';
@@ -27,10 +28,39 @@ function Bar({ value, target }: { value: number; target: number }) {
   );
 }
 
+/** One calorie/protein ring card (reference UI mockup's two side-by-side stat cards). */
+function RingStat({
+  label,
+  eaten,
+  target,
+  unit,
+}: {
+  label: string;
+  eaten: number;
+  target: number;
+  unit: string;
+}) {
+  const left = Math.max(0, Math.round(target) - Math.round(eaten));
+  return (
+    <Card style={styles.ringCard}>
+      <Typography variant="bodyStrong">{label}</Typography>
+      <CircularProgress value={eaten} max={target} size={104} strokeWidth={10}>
+        <Typography variant="statLarge">{Math.round(eaten)}</Typography>
+        <Typography variant="statUnit" color="secondary">
+          / {Math.round(target)} {unit}
+        </Typography>
+      </CircularProgress>
+      <Typography variant="caption" color="secondary">
+        {left} {unit} left
+      </Typography>
+    </Card>
+  );
+}
+
 /**
- * Minimal Today dashboard (PRD §3.7) — rings/water bar/workout card/weigh-in prompt/week
- * strip/sync status, all sourced from `todaySummary.ts`. The weekly adaptive check-in (§4.4) is
- * explicitly PRD's own Phase 5, not built here.
+ * Today dashboard (PRD §3.7) — rings/water bar/workout card/weigh-in prompt/week strip/sync
+ * status, all sourced from `todaySummary.ts`. Visually matches the reference UI mockup; the
+ * weekly adaptive check-in (§4.4) is explicitly PRD's own Phase 5, not built here.
  */
 export default function TodayScreen() {
   const { colors } = useTheme();
@@ -49,6 +79,7 @@ export default function TodayScreen() {
   const [scheduledTemplateId, setScheduledTemplateId] = useState<string | null>(() => scheduledTemplateIdFor(weekday));
   const [weightInput, setWeightInput] = useState('');
   const [customWater, setCustomWater] = useState('');
+  const [customWaterOpen, setCustomWaterOpen] = useState(false);
 
   const refresh = useCallback(() => {
     setSummary(getTodaySummary());
@@ -66,6 +97,7 @@ export default function TodayScreen() {
     if (!Number.isFinite(ml) || ml <= 0) return;
     logWater(ml);
     setCustomWater('');
+    setCustomWaterOpen(false);
     refresh();
   };
 
@@ -77,6 +109,8 @@ export default function TodayScreen() {
     refresh();
   };
 
+  const canStartWorkout = Boolean(scheduledTemplateId) && !summary.workout.loggedToday;
+
   const onStartWorkout = () => {
     if (!scheduledTemplateId) return;
     router.push({ pathname: '/active-workout', params: { templateId: scheduledTemplateId } });
@@ -87,50 +121,88 @@ export default function TodayScreen() {
     refresh();
   };
 
+  const trainedCount = summary.weekStrip.filter((d) => d.trained).length;
+  const foodLoggedCount = summary.weekStrip.filter((d) => d.foodLogged).length;
+
+  const WorkoutCardContent = (
+    <>
+      <View style={styles.row}>
+        <View style={[styles.workoutIconWrap, { backgroundColor: colors.background }]}>
+          <MaterialCommunityIcons name="dumbbell" size={20} color={colors.accent} />
+        </View>
+        <View style={styles.flexInput}>
+          <Typography variant="bodyStrong">
+            {summary.workout.scheduledTemplateName ?? 'Rest day'}
+          </Typography>
+          <Typography variant="caption" color="secondary">
+            {summary.workout.scheduledTemplateName ? "Today's session" : 'Recovery'}
+          </Typography>
+        </View>
+        {canStartWorkout ? <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} /> : null}
+      </View>
+      {summary.workout.loggedToday ? (
+        <Typography variant="caption" color="secondary">
+          Workout logged today
+        </Typography>
+      ) : null}
+    </>
+  );
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <Typography variant="headline">Today</Typography>
+      <View style={styles.headerRow}>
+        <View>
+          <Typography variant="headline">Today</Typography>
+          <Typography variant="caption" color="secondary">
+            {today}
+          </Typography>
+        </View>
+        <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
+      </View>
+
+      <View style={styles.row}>
+        <RingStat label="Calories" eaten={summary.calories.eaten} target={summary.calories.target} unit="kcal" />
+        <RingStat label="Protein" eaten={summary.protein.eatenG} target={summary.protein.targetG} unit="g" />
+      </View>
 
       <Card style={styles.sectionCard}>
-        <Typography variant="bodyStrong">
-          Calories: {Math.round(summary.calories.eaten)} / {Math.round(summary.calories.target)} kcal
-        </Typography>
-        <Bar value={summary.calories.eaten} target={summary.calories.target} />
-        <Typography variant="bodyStrong">
-          Protein: {Math.round(summary.protein.eatenG)} / {Math.round(summary.protein.targetG)} g
-        </Typography>
-        <Bar value={summary.protein.eatenG} target={summary.protein.targetG} />
-      </Card>
-
-      <Card style={styles.sectionCard}>
-        <Typography variant="bodyStrong">
-          Water: {summary.water.totalMl} / {Math.round(summary.water.targetMl)} ml
-        </Typography>
+        <View style={styles.row}>
+          <Ionicons name="water-outline" size={18} color={colors.accent} />
+          <Typography variant="bodyStrong">
+            {summary.water.totalMl} / {Math.round(summary.water.targetMl)} ml
+          </Typography>
+        </View>
         <Bar value={summary.water.totalMl} target={summary.water.targetMl} />
         <View style={styles.row}>
           <Button variant="secondary" label="+250 ml" onPress={() => onAddWater(250)} />
           <Button variant="secondary" label="+500 ml" onPress={() => onAddWater(500)} />
+          <Button
+            variant="secondary"
+            label="Custom"
+            onPress={() => setCustomWaterOpen((v) => !v)}
+          />
         </View>
-        <View style={styles.row}>
-          <View style={styles.flexInput}>
-            <TextField label="Custom (ml)" value={customWater} onChangeText={setCustomWater} keyboardType="number-pad" />
+        {customWaterOpen ? (
+          <View style={styles.row}>
+            <View style={styles.flexInput}>
+              <TextField label="Custom (ml)" value={customWater} onChangeText={setCustomWater} keyboardType="number-pad" />
+            </View>
+            <Button label="Add" onPress={onCustomWater} />
           </View>
-          <Button label="Add" onPress={onCustomWater} />
-        </View>
-      </Card>
-
-      <Card style={styles.sectionCard}>
-        <Typography variant="bodyStrong">
-          {summary.workout.scheduledTemplateName ? `Today: ${summary.workout.scheduledTemplateName}` : 'Rest day'}
-        </Typography>
-        {summary.workout.loggedToday ? (
-          <Typography variant="caption" color="secondary">
-            Workout logged today
-          </Typography>
-        ) : scheduledTemplateId ? (
-          <Button label="Start workout" onPress={onStartWorkout} />
         ) : null}
       </Card>
+
+      {canStartWorkout ? (
+        <Pressable onPress={onStartWorkout}>
+          <Card style={[styles.sectionCard, styles.workoutCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.accent }]}>
+            {WorkoutCardContent}
+          </Card>
+        </Pressable>
+      ) : (
+        <Card style={[styles.sectionCard, styles.workoutCard, { backgroundColor: colors.surfaceAlt, borderColor: colors.accent }]}>
+          {WorkoutCardContent}
+        </Card>
+      )}
 
       {!summary.weighInLoggedToday ? (
         <Card style={styles.sectionCard}>
@@ -152,20 +224,16 @@ export default function TodayScreen() {
               <Typography variant="caption" color="secondary">
                 {WEEKDAY_LETTERS[weekdayOf(day.localDate)]}
               </Typography>
-              <Typography variant="caption" color={day.trained ? 'accent' : 'secondary'}>
-                W
-              </Typography>
-              <Typography variant="caption" color={day.foodLogged ? 'accent' : 'secondary'}>
-                F
-              </Typography>
-              <Typography variant="caption" color={day.proteinHit ? 'accent' : 'secondary'}>
-                P
-              </Typography>
+              <Ionicons
+                name={day.trained ? 'checkmark-circle' : 'ellipse-outline'}
+                size={22}
+                color={day.trained ? colors.accent : colors.textSecondary}
+              />
             </View>
           ))}
         </View>
         <Typography variant="caption" color="secondary">
-          W = trained · F = food logged · P = protein within 10% of target
+          {trainedCount} workouts · {foodLoggedCount}/7 days logged
         </Typography>
       </Card>
 
@@ -185,11 +253,21 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.md },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   sectionCard: { gap: spacing.xs },
-  row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
+  ringCard: { flex: 1, alignItems: 'center', gap: spacing.xs },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   flexInput: { flex: 1 },
   barTrack: { height: 10, borderRadius: radius.sm, overflow: 'hidden' },
   barFill: { height: '100%' },
   weekStripRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  weekStripDay: { alignItems: 'center', gap: 2 },
+  weekStripDay: { alignItems: 'center', gap: 4 },
+  workoutCard: { borderWidth: 1 },
+  workoutIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

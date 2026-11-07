@@ -13,7 +13,7 @@ const PROTEIN_HIT_TOLERANCE = 0.1; // within 10% of target (PRD §2 success metr
 /** Shifts an already-known-correct "YYYY-MM-DD" string by N days. UTC-midnight-anchored
  * arithmetic is the right tool here (unlike computing "today", see platform/localDate.ts) — it
  * round-trips any calendar date correctly regardless of the runtime's own timezone. */
-function daysBefore(localDate: string, n: number): string {
+export function daysBefore(localDate: string, n: number): string {
   const d = new Date(`${localDate}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - n);
   return d.toISOString().slice(0, 10);
@@ -22,7 +22,7 @@ function daysBefore(localDate: string, n: number): string {
 /** Sums a day's `food_entry` rows into calories/protein, resolving each catalog/custom food
  * through `foodRepository.resolvedNutritionFor` (which already applies any `food_override`), or
  * using the quick-add raw values when there's no `foodId`. */
-function nutritionEatenForDate(localDate: string): { kcal: number; proteinG: number } {
+export function nutritionEatenForDate(localDate: string): { kcal: number; proteinG: number } {
   let kcal = 0;
   let proteinG = 0;
 
