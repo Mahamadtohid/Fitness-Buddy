@@ -176,7 +176,7 @@ export default function SettingsScreen() {
     try {
       const json = exportToJson();
       const shared = await writeAndShareFile(
-        `fitness-companion-export-${getLocalDateString()}.json`,
+        `fittrack-export-${getLocalDateString()}.json`,
         JSON.stringify(json, null, 2),
       );
       setExportMessage(

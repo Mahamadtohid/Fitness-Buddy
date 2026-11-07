@@ -8,7 +8,10 @@ export default function WelcomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Typography variant="headline">Fitness Companion</Typography>
+      <Typography variant="headline">FitTrack</Typography>
+      <Typography variant="bodyStrong" color="accent" style={styles.tagline}>
+        Train. Fuel. Progress.
+      </Typography>
       <Typography variant="body" color="secondary" style={styles.subtitle}>
         Workouts, food, weight and water — in one place.
       </Typography>
@@ -29,6 +32,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     justifyContent: 'center',
+  },
+  tagline: {
+    marginTop: spacing.xs,
   },
   subtitle: {
     marginTop: spacing.sm,

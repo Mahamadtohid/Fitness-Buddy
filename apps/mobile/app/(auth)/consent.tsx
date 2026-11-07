@@ -10,7 +10,7 @@ export default function ConsentScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Typography variant="title">Before you start</Typography>
       <Typography variant="body" color="secondary" style={styles.body}>
-        Fitness Companion stores health-related personal data (workouts, food, weight, water) in
+        FitTrack stores health-related personal data (workouts, food, weight, water) in
         your account so it can sync across your devices. Read the{' '}
         <Typography variant="body" color="accent" onPress={() => router.push('/privacy-policy')}>
           privacy policy
