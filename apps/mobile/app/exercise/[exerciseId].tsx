@@ -52,7 +52,7 @@ export default function ExerciseHistoryScreen() {
 
       <Card style={styles.chartCard}>
         <Typography variant="title">Estimated 1RM</Typography>
-        <LineChart points={chartPoints} />
+        <LineChart points={chartPoints} emptyMessage="Log a few sets to see your estimated 1RM trend." />
       </Card>
 
       <Typography variant="title">All sets</Typography>
