@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Button, Card, radius, SegmentedControl, spacing, Typography, useTheme } from '../../src/design';
+import { Button, Card, radius, SegmentedControl, screenPadding, spacing, Typography, useTheme } from '../../src/design';
 import { getSchedule, setScheduleDay } from '../../src/data/repositories/scheduleRepository';
 import { listTemplates } from '../../src/data/repositories/workoutTemplateRepository';
 import { listExercisesByMuscleGroup } from '../../src/data/repositories/exerciseRepository';
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: spacing.lg,
+    padding: screenPadding,
     gap: spacing.md,
   },
   header: {

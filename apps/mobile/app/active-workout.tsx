@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../src/design';
+import { Button, Card, radius, screenPadding, spacing, TextField, Typography, useTheme } from '../src/design';
 import { listExercisesByMuscleGroup } from '../src/data/repositories/exerciseRepository';
 import { listTemplates } from '../src/data/repositories/workoutTemplateRepository';
 import type { TemplateItem } from '../src/data/repositories/workoutTemplateLogic';
@@ -259,7 +259,7 @@ export default function ActiveWorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
+    padding: screenPadding,
   },
   content: {
     gap: spacing.md,

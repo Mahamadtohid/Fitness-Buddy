@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { Button, Card, CircularProgress, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { Button, Card, CircularProgress, radius, screenPadding, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { getTodaySummary, type TodaySummary } from '../../src/data/repositories/todaySummary';
 import { logWater } from '../../src/data/repositories/waterEntryRepository';
 import { logWeight } from '../../src/data/repositories/weightEntryRepository';
@@ -277,7 +277,7 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: spacing.lg, gap: spacing.md },
+  content: { padding: screenPadding, gap: spacing.md },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   sectionCard: { gap: spacing.xs },
   ringCard: { flex: 1, alignItems: 'center', gap: spacing.xs },

@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Button, Card, radius, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { Button, Card, radius, screenPadding, spacing, TextField, Typography, useTheme } from '../../src/design';
 import { copyYesterday, listForDate, logEntry, quickAdd } from '../../src/data/repositories/foodEntryRepository';
 import { recentFoods, resolvedNutritionFor, searchFoods } from '../../src/data/repositories/foodRepository';
 import { create as createSavedMeal, list as listSavedMeals } from '../../src/data/repositories/savedMealRepository';
@@ -508,7 +508,7 @@ export default function FoodScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: spacing.lg, gap: spacing.sm },
+  content: { padding: screenPadding, gap: spacing.sm },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statRow: { flexDirection: 'row', gap: spacing.sm },
   statCard: { flex: 1, gap: spacing.xs },

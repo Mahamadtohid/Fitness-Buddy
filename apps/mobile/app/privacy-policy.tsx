@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { Card, spacing, Typography, useTheme } from '../src/design';
+import { Card, screenPadding, spacing, Typography, useTheme } from '../src/design';
 
 type Section = { title: string; body: string };
 
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: spacing.lg,
+    padding: screenPadding,
     gap: spacing.lg,
   },
   banner: {

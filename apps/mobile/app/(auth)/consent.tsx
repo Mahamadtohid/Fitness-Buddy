@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { Button, spacing, Typography, useTheme } from '../../src/design';
+import { Button, screenPadding, spacing, Typography, useTheme } from '../../src/design';
 
 export default function ConsentScreen() {
   const { colors } = useTheme();
@@ -25,7 +25,7 @@ export default function ConsentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
+    padding: screenPadding,
     justifyContent: 'center',
     gap: spacing.md,
   },

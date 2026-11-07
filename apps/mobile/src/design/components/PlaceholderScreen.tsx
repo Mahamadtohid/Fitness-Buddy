@@ -1,7 +1,7 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet } from 'react-native';
 
-import { spacing } from '../tokens';
+import { screenPadding, spacing } from '../tokens';
 import { useTheme } from '../ThemeProvider';
 import { Typography } from './Typography';
 
@@ -25,7 +25,7 @@ export function PlaceholderScreen({ title, comingInPhase }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
+    padding: screenPadding,
     justifyContent: 'center',
   },
   subtitle: {

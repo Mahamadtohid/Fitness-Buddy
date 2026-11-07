@@ -1,7 +1,7 @@
 import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 
-import { spacing } from '../tokens';
+import { screenPadding, spacing } from '../tokens';
 import { useTheme } from '../ThemeProvider';
 
 type Props = {
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: spacing.lg,
+    padding: screenPadding,
     gap: spacing.md,
   },
 });

@@ -7,6 +7,14 @@ export const spacing = {
   xxl: 48,
 } as const;
 
+/**
+ * Edge padding for a screen's content (FitTrack guidelines §4: "Typical screen padding: 16–20 px").
+ * Kept separate from the `spacing` scale because that scale is also used for gaps and margins —
+ * screens previously padded with `spacing.lg` (24px), which sat outside the guideline range and
+ * cost content width on small devices.
+ */
+export const screenPadding = 20;
+
 export const radius = {
   sm: 6,
   md: 10,

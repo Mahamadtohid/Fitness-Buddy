@@ -5,6 +5,7 @@ import { Platform, Pressable, SectionList, StyleSheet, View } from 'react-native
 import {
   Button,
   Card,
+  screenPadding,
   spacing,
   TextField,
   Typography,
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: spacing.lg,
+    padding: screenPadding,
     gap: spacing.sm,
     paddingBottom: spacing.xxl,
   },

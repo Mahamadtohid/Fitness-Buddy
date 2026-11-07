@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
-import { Card, spacing, Typography, useTheme } from '../src/design';
+import { Card, screenPadding, spacing, Typography, useTheme } from '../src/design';
 
 /**
  * PRD §5's quick-add sheet: each option jumps to where that action actually lives today (weigh-in
@@ -40,7 +40,7 @@ export default function QuickAddSheet() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
+    padding: screenPadding,
     gap: spacing.sm,
   },
   option: {
