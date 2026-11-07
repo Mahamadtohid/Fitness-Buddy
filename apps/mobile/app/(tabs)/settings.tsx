@@ -10,6 +10,7 @@ import { createTargets, latestTargets } from '../../src/data/repositories/target
 import { listWeightEntries } from '../../src/data/repositories/weightEntryRepository';
 import { calculateAgeFromBirthDate, calculateRestDayTarget, calculateTrainingDayTarget } from '../../src/domain/bmr';
 import { calculateMacroTargets } from '../../src/domain/macros';
+import { formatLength, type Units } from '../../src/domain/units';
 import { useAuthStore } from '../../src/features/account/useAuthStore';
 import type { ProfileRow, TargetRow } from '../../src/data/db/schema';
 import { getLocalDateString } from '../../src/platform/localDate';
@@ -236,7 +237,7 @@ export default function SettingsScreen() {
       <Card style={styles.card}>
         <Typography variant="title">Profile</Typography>
         <Typography variant="body">
-          {profile.sex}, born {profile.birthDate}, {profile.heightCm} cm
+          {profile.sex}, born {profile.birthDate}, {formatLength(profile.heightCm, profile.units as Units)}
         </Typography>
         {targets ? (
           <Typography variant="body" color="secondary">
@@ -250,7 +251,7 @@ export default function SettingsScreen() {
         )}
       </Card>
 
-      <UnitsSection />
+      <UnitsSection onChanged={() => setProfile(getProfile())} />
 
       <Card style={styles.card}>
         <Typography variant="title">Goal</Typography>
@@ -264,7 +265,12 @@ export default function SettingsScreen() {
             />
           ))}
         </View>
-        <TextField label="Rate (kg/week)" value={rateInput} onChangeText={setRateInput} keyboardType="numbers-and-punctuation" />
+        <TextField
+          label={profile.units === 'imperial' ? 'Rate (lb/week)' : 'Rate (kg/week)'}
+          value={rateInput}
+          onChangeText={setRateInput}
+          keyboardType="numbers-and-punctuation"
+        />
         <Button label="Recalculate targets" onPress={onRecalculate} />
       </Card>
 
