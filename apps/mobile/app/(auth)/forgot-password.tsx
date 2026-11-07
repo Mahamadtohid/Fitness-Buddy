@@ -50,9 +50,10 @@ export default function ForgotPasswordScreen() {
         </Typography>
       ) : (
         <Button
-          label={submitting ? 'Sending…' : 'Send reset link'}
+          label="Send reset link"
           onPress={onSubmit}
-          disabled={submitting || !email.trim()}
+          loading={submitting}
+          disabled={!email.trim()}
         />
       )}
     </KeyboardAwareScreen>

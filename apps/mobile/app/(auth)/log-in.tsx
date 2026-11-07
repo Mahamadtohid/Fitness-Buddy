@@ -53,7 +53,7 @@ export default function LogInScreen() {
           {error}
         </Typography>
       ) : null}
-      <Button label={submitting ? 'Logging in…' : 'Log in'} onPress={onSubmit} disabled={submitting} />
+      <Button label="Log in" onPress={onSubmit} loading={submitting} />
       <Typography
         variant="body"
         color="accent"
