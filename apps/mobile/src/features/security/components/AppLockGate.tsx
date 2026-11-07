@@ -149,9 +149,10 @@ export function AppLockGate() {
             ) : null}
 
             <Button
-              label={submitting ? 'Unlocking…' : 'Unlock'}
+              label="Unlock"
               onPress={onSubmitPin}
-              disabled={submitting || pin.length === 0}
+              loading={submitting}
+              disabled={pin.length === 0}
             />
           </View>
         </ScrollView>

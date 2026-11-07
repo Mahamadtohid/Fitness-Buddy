@@ -65,11 +65,7 @@ export default function SignUpScreen() {
           {error}
         </Typography>
       ) : null}
-      <Button
-        label={submitting ? 'Creating account…' : 'Create account'}
-        onPress={onSubmit}
-        disabled={submitting}
-      />
+      <Button label="Create account" onPress={onSubmit} loading={submitting} />
     </KeyboardAwareScreen>
   );
 }

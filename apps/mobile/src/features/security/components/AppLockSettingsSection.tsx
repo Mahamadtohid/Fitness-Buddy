@@ -146,11 +146,7 @@ export function AppLockSettingsSection() {
             ) : null}
             <View style={styles.row}>
               <Button variant="secondary" label="Cancel" onPress={onCancelSetup} disabled={savingSetup} />
-              <Button
-                label={savingSetup ? 'Saving…' : 'Save PIN'}
-                onPress={onSaveSetup}
-                disabled={savingSetup}
-              />
+              <Button label="Save PIN" onPress={onSaveSetup} loading={savingSetup} />
             </View>
           </View>
         ) : (
@@ -193,9 +189,9 @@ export function AppLockSettingsSection() {
       ) : (
         <Button
           variant="secondary"
-          label={disabling ? 'Turning off…' : 'Turn off app lock'}
+          label="Turn off app lock"
           onPress={onPressTurnOff}
-          disabled={disabling}
+          loading={disabling}
         />
       )}
     </Card>
