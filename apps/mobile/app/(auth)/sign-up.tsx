@@ -1,20 +1,20 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-
-import { Button, spacing, TextField, Typography, useTheme } from '../../src/design';
+import { useRef, useState } from 'react';
+import { Button, KeyboardAwareScreen, TextField, Typography, type TextFieldHandle } from '../../src/design';
 import { useAuthStore } from '../../src/features/account/useAuthStore';
 
 export default function SignUpScreen() {
-  const { colors } = useTheme();
   const registerAndLogin = useAuthStore((s) => s.registerAndLogin);
   const [inviteCode, setInviteCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const emailRef = useRef<TextFieldHandle>(null);
+  const passwordRef = useRef<TextFieldHandle>(null);
 
   const onSubmit = async () => {
+    if (submitting) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -28,21 +28,38 @@ export default function SignUpScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAwareScreen>
       <TextField
         label="Invite code"
         value={inviteCode}
         onChangeText={setInviteCode}
         autoCapitalize="characters"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => emailRef.current?.focus()}
       />
       <TextField
+        ref={emailRef}
         label="Email"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        autoComplete="email"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => passwordRef.current?.focus()}
       />
-      <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry />
+      <TextField
+        ref={passwordRef}
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        autoComplete="new-password"
+        returnKeyType="go"
+        onSubmitEditing={() => void onSubmit()}
+      />
       {error ? (
         <Typography variant="body" color="danger">
           {error}
@@ -53,14 +70,6 @@ export default function SignUpScreen() {
         onPress={onSubmit}
         disabled={submitting}
       />
-    </View>
+    </KeyboardAwareScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-});
