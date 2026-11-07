@@ -36,6 +36,18 @@ const GOALS: { goal: Goal; label: string }[] = [
   { goal: 'gain', label: 'Gain' },
 ];
 
+/** Label above each settings group (FitTrack guidelines §6.8 names the six groups and asks for a
+ * grouped list rather than one long ungrouped stack). Deliberately smaller than the cards' own
+ * titles and styled like a platform settings-category label, so it reads as a divider between
+ * groups rather than competing with the card headings underneath it. */
+function GroupHeading({ children }: { children: string }) {
+  return (
+    <Typography variant="caption" color="secondary" style={styles.groupHeading}>
+      {children.toUpperCase()}
+    </Typography>
+  );
+}
+
 /**
  * Settings (PRD §3.2 target override, §3.8 account) — profile summary, goal/rate editing with
  * recalculation, a manual target override form, and Logout (closes a gap left since Phase 2: the
@@ -252,6 +264,8 @@ export default function SettingsScreen() {
       >
         <Typography variant="headline">Settings</Typography>
 
+        <GroupHeading>Profile</GroupHeading>
+
         <Card style={styles.card}>
           <Typography variant="title">Profile</Typography>
           <Typography variant="body">
@@ -269,9 +283,11 @@ export default function SettingsScreen() {
           )}
         </Card>
 
-        <UnitsSection onChanged={() => setProfile(getProfile())} />
+        <ActiveSessionsSection />
 
-        <ThemeSection />
+        <Button variant="secondary" label="Log out" onPress={onLogout} />
+
+        <GroupHeading>Fitness goals</GroupHeading>
 
         <Card style={styles.card}>
           <Typography variant="title">Goal</Typography>
@@ -303,6 +319,18 @@ export default function SettingsScreen() {
           <TextField label="Water (ml)" value={overrideWater} onChangeText={setOverrideWater} keyboardType="number-pad" />
           <Button label="Save override" onPress={onManualOverride} />
         </Card>
+
+        <GroupHeading>Preferences</GroupHeading>
+
+        <UnitsSection onChanged={() => setProfile(getProfile())} />
+
+        <ThemeSection />
+
+        <GroupHeading>Notifications</GroupHeading>
+
+        <WaterReminderSettingsSection />
+
+        <GroupHeading>Data</GroupHeading>
 
         <Card style={styles.card}>
           <Typography variant="title">Export data</Typography>
@@ -352,16 +380,12 @@ export default function SettingsScreen() {
           ) : null}
         </Card>
 
-        <WaterReminderSettingsSection />
+        <GroupHeading>Privacy</GroupHeading>
 
         <AppLockSettingsSection />
 
-        <ActiveSessionsSection />
-
-        <Button variant="secondary" label="Log out" onPress={onLogout} />
-
         <Card style={styles.card}>
-          <Typography variant="title">Privacy</Typography>
+          <Typography variant="title">Privacy policy</Typography>
           <Button variant="secondary" label="Privacy policy" onPress={() => router.push('/privacy-policy')} />
         </Card>
 
@@ -395,6 +419,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
   emptyPadding: { padding: spacing.lg },
   card: { gap: spacing.sm },
+  groupHeading: { marginTop: spacing.sm, letterSpacing: 0.8 },
   dangerCard: { borderWidth: 1 },
   row: { flexDirection: 'row', gap: spacing.sm },
 });
