@@ -1,3 +1,4 @@
+import * as ScreenCapture from 'expo-screen-capture';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus, StyleSheet, View } from 'react-native';
 
@@ -35,6 +36,20 @@ export function AppLockGate() {
     });
     return () => subscription.remove();
   }, [enabled, lock]);
+
+  // OS-level protection, independent of `isLocked`: Android snapshots the app's last-shown
+  // content for the recent-apps task switcher (and iOS does the equivalent for its app switcher)
+  // at the compositor level, before any JS — including the AppState listener above — gets a
+  // chance to run. So this must be active for the whole time app lock is enabled, not just while
+  // currently locked, otherwise the snapshot race is unwinnable. Opt-in: only engaged while the
+  // user has app lock turned on, and released the moment they turn it off.
+  useEffect(() => {
+    if (enabled) {
+      void ScreenCapture.preventScreenCaptureAsync();
+    } else {
+      void ScreenCapture.allowScreenCaptureAsync();
+    }
+  }, [enabled]);
 
   // Try biometric automatically once when the overlay first appears, falling back to the PIN
   // field if it fails, isn't available, or the user cancels. Resets the guard once unlocked so
