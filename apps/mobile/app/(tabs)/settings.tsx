@@ -309,7 +309,7 @@ export default function SettingsScreen() {
           <Typography variant="caption" color="secondary">
             {PHOTO_EXPORT_NOTE}
           </Typography>
-          <Button label={exporting ? 'Exporting…' : 'Export all data (JSON)'} onPress={onExportJson} disabled={exporting} />
+          <Button label="Export all data (JSON)" onPress={onExportJson} loading={exporting} />
           <View style={styles.row}>
             {availableExportTableNames().map((name) => (
               <Button
@@ -322,9 +322,10 @@ export default function SettingsScreen() {
           </View>
           <Button
             variant="secondary"
-            label={exporting ? 'Exporting…' : `Export ${csvTable || '—'} (CSV)`}
+            label={`Export ${csvTable || '—'} (CSV)`}
             onPress={onExportCsv}
-            disabled={!csvTable || exporting}
+            loading={exporting}
+            disabled={!csvTable}
           />
           {exportMessage ? (
             <Typography variant="caption" color="secondary">
@@ -340,9 +341,9 @@ export default function SettingsScreen() {
           </Typography>
           <Button
             variant="secondary"
-            label={importing ? 'Importing…' : 'Choose file to import'}
+            label="Choose file to import"
             onPress={onImport}
-            disabled={importing}
+            loading={importing}
           />
           {importMessage ? (
             <Typography variant="caption" color="secondary">
@@ -379,9 +380,9 @@ export default function SettingsScreen() {
           ) : null}
           <Button
             variant="secondary"
-            label={deleting ? 'Deleting…' : 'Delete account'}
+            label="Delete account"
             onPress={onDeleteAccount}
-            disabled={deleting}
+            loading={deleting}
           />
         </Card>
       </ScrollView>
