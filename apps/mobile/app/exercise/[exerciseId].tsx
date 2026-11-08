@@ -6,6 +6,7 @@ import { Card, LineChart, screenPadding, spacing, Typography, useTheme } from '.
 import { listExercisesByMuscleGroup } from '../../src/data/repositories/exerciseRepository';
 import { historyForExercise } from '../../src/data/repositories/setEntryRepository';
 import { estimatedOneRepMax, isPersonalRecord } from '../../src/domain/oneRepMax';
+import { guideForExerciseName } from '../../src/data/db/exerciseGuides';
 
 /** Short "M/D" label for a "YYYY-MM-DD" local date — UTC-midnight parsing + UTC getters so this
  * round-trips correctly regardless of the device's own timezone (same approach documented on
@@ -27,6 +28,10 @@ export default function ExerciseHistoryScreen() {
   // Full per-set, chronological (oldest first) history — also the exact shape/order
   // `isPersonalRecord` expects, so PR badges below are computed directly against this array.
   const history = useMemo(() => (exerciseId ? historyForExercise(exerciseId) : []), [exerciseId]);
+
+  // Null for the handful of exercises we ship no vetted guidance for, and for custom ones the
+  // user added themselves — those simply render without the guide sections.
+  const guide = useMemo(() => (exercise ? guideForExerciseName(exercise.name) : null), [exercise]);
 
   // Best (max) estimated 1RM per session for the chart. `historyForExercise` returns each set's
   // session `localDate` rather than a session id, so sets are grouped by date here — two sessions
@@ -50,10 +55,66 @@ export default function ExerciseHistoryScreen() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <Typography variant="headline">{exercise?.name ?? 'Exercise history'}</Typography>
 
+      {guide ? (
+        <>
+          <Typography variant="body" color="secondary">
+            {guide.description}
+          </Typography>
+
+          <View style={styles.chipRow}>
+            {guide.primaryMuscles.map((muscle) => (
+              <View key={muscle} style={[styles.chip, { backgroundColor: colors.accentFill }]}>
+                <Typography variant="caption" style={{ color: colors.accentOn }}>
+                  {muscle}
+                </Typography>
+              </View>
+            ))}
+            {guide.secondaryMuscles.map((muscle) => (
+              <View key={muscle} style={[styles.chip, { backgroundColor: colors.surfaceAlt }]}>
+                <Typography variant="caption" color="secondary">
+                  {muscle}
+                </Typography>
+              </View>
+            ))}
+          </View>
+
+          <Typography variant="caption" color="secondary">
+            {[guide.mechanic, guide.difficulty, guide.equipment].filter(Boolean).join(' · ')}
+          </Typography>
+        </>
+      ) : null}
+
       <Card style={styles.chartCard}>
         <Typography variant="title">Estimated 1RM</Typography>
         <LineChart points={chartPoints} emptyMessage="Log a few sets to see your estimated 1RM trend." />
       </Card>
+
+      {guide && guide.instructions.length > 0 ? (
+        <Card style={styles.chartCard}>
+          <Typography variant="title">How to do it</Typography>
+          {guide.instructions.map((stepText, index) => (
+            <View key={stepText} style={styles.stepRow}>
+              <Typography variant="bodyStrong" color="accent" style={styles.stepNumber}>
+                {index + 1}
+              </Typography>
+              <Typography variant="body" style={styles.stepText}>
+                {stepText}
+              </Typography>
+            </View>
+          ))}
+        </Card>
+      ) : null}
+
+      {guide && guide.tips.length > 0 ? (
+        <Card style={styles.chartCard}>
+          <Typography variant="title">Tips</Typography>
+          {guide.tips.map((tip) => (
+            <Typography key={tip} variant="body" color="secondary">
+              • {tip}
+            </Typography>
+          ))}
+        </Card>
+      ) : null}
 
       <Typography variant="title">All sets</Typography>
       {history.length === 0 ? (
@@ -106,5 +167,25 @@ const styles = StyleSheet.create({
   },
   setRowLeft: {
     gap: spacing.xs / 2,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  chip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: radius.sm,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  stepNumber: {
+    minWidth: 18,
+  },
+  stepText: {
+    flex: 1,
   },
 });
