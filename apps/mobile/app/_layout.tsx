@@ -89,6 +89,9 @@ function RootNavigator() {
         <Stack.Screen name="active-workout" options={{ headerShown: true, title: 'Workout' }} />
         <Stack.Screen name="exercise-library" options={{ headerShown: true, title: 'Exercises' }} />
         <Stack.Screen name="exercise/[exerciseId]" options={{ headerShown: true, title: 'Exercise history' }} />
+        <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+        <Stack.Screen name="fitness-preferences" options={{ headerShown: false }} />
+        <Stack.Screen name="appearance" options={{ headerShown: false }} />
       </Stack>
       {status === 'authenticated' ? <AppLockGate /> : null}
     </>

@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { Card, LineChart, screenPadding, spacing, Typography, useTheme } from '../../src/design';
+import { Card, LineChart, radius, screenPadding, spacing, Typography, useTheme } from '../../src/design';
 import { listExercisesByMuscleGroup } from '../../src/data/repositories/exerciseRepository';
 import { historyForExercise } from '../../src/data/repositories/setEntryRepository';
 import { estimatedOneRepMax, isPersonalRecord } from '../../src/domain/oneRepMax';

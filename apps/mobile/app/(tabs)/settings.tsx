@@ -28,6 +28,8 @@ import { AboutSection } from '../../src/features/profile/components/AboutSection
 import { ActiveSessionsSection } from '../../src/features/account/components/ActiveSessionsSection';
 import { WaterReminderSettingsSection } from '../../src/features/water/components/WaterReminderSettingsSection';
 import { AppLockSettingsSection } from '../../src/features/security/components/AppLockSettingsSection';
+import { SettingsRow } from '../../src/features/profile/components/SettingsRow';
+import { Ionicons } from '@expo/vector-icons';
 
 type Goal = 'lose' | 'maintain' | 'gain';
 
@@ -265,6 +267,39 @@ export default function SettingsScreen() {
       >
         <Typography variant="headline">Settings</Typography>
 
+        <Card style={styles.profileHero}>
+          <View style={[styles.profileAvatar, { backgroundColor: colors.surfaceAlt, borderColor: colors.accent }]}>
+            <Ionicons name="person" size={28} color={String(colors.accent)} />
+          </View>
+          <View style={styles.profileHeroCopy}>
+            <Typography variant="title">Your profile</Typography>
+            <Typography variant="caption" color="secondary">{useAuthStore.getState().userEmail ?? 'Personal details and preferences'}</Typography>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={String(colors.textSecondary)} />
+        </Card>
+
+        <Card style={styles.card}>
+          <Typography variant="title">Personalize FitTrack</Typography>
+          <SettingsRow
+            icon="person-outline"
+            label="Edit profile"
+            description="Update your details and current weight"
+            onPress={() => router.push('/edit-profile')}
+          />
+          <SettingsRow
+            icon="barbell-outline"
+            label="Fitness preferences"
+            description="Goal, activity, days, and duration"
+            onPress={() => router.push('/fitness-preferences')}
+          />
+          <SettingsRow
+            icon="color-palette-outline"
+            label="Appearance"
+            description="Theme, accent, and display settings"
+            onPress={() => router.push('/appearance')}
+          />
+        </Card>
+
         <GroupHeading>Profile</GroupHeading>
 
         <Card style={styles.card}>
@@ -425,4 +460,7 @@ const styles = StyleSheet.create({
   groupHeading: { marginTop: spacing.sm, letterSpacing: 0.8 },
   dangerCard: { borderWidth: 1 },
   row: { flexDirection: 'row', gap: spacing.sm },
+  profileHero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  profileAvatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  profileHeroCopy: { flex: 1, gap: spacing.xs },
 });

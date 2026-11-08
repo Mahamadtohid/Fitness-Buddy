@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { palettes, ThemeMode } from './tokens';
+import { AccentTone, getColors, ThemeMode } from './tokens';
 import { getSecureItem, setSecureItem } from '../platform/secureStorage';
 
 /**
@@ -12,17 +12,24 @@ import { getSecureItem, setSecureItem } from '../platform/secureStorage';
 export type ThemePreference = ThemeMode | 'system';
 
 const PREFERENCE_KEY = 'theme.preference';
+const ACCENT_KEY = 'theme.accent';
 
 function isPreference(value: string | null): value is ThemePreference {
   return value === 'system' || value === 'light' || value === 'dark';
 }
 
+function isAccentTone(value: string | null): value is AccentTone {
+  return value === 'emerald' || value === 'blue' || value === 'purple' || value === 'orange' || value === 'coral';
+}
+
 type Theme = {
   /** The theme actually in effect, after resolving `'system'` against the current OS setting. */
   mode: ThemeMode;
-  colors: (typeof palettes)['light'];
+  colors: ReturnType<typeof getColors>;
   preference: ThemePreference;
   setPreference: (preference: ThemePreference) => void;
+  accentTone: AccentTone;
+  setAccentTone: (accentTone: AccentTone) => void;
 };
 
 const ThemeContext = createContext<Theme | null>(null);
@@ -31,6 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const scheme = useColorScheme();
   // Starts at 'system' so the first frame matches the OS, then switches if a stored choice loads.
   const [preference, setPreferenceState] = useState<ThemePreference>('system');
+  const [accentTone, setAccentToneState] = useState<AccentTone>('emerald');
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +47,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled && isPreference(stored)) setPreferenceState(stored);
       })
       // Best-effort: an unreadable preference just leaves the app following the OS.
+      .catch(() => {});
+    getSecureItem(ACCENT_KEY)
+      .then((stored) => {
+        if (!cancelled && isAccentTone(stored)) setAccentToneState(stored);
+      })
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -50,11 +63,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     void setSecureItem(PREFERENCE_KEY, next).catch(() => {});
   }, []);
 
+  const setAccentTone = useCallback((next: AccentTone) => {
+    setAccentToneState(next);
+    void setSecureItem(ACCENT_KEY, next).catch(() => {});
+  }, []);
+
   const mode: ThemeMode = preference === 'system' ? (scheme === 'dark' ? 'dark' : 'light') : preference;
 
   const value = useMemo<Theme>(
-    () => ({ mode, colors: palettes[mode], preference, setPreference }),
-    [mode, preference, setPreference],
+    () => ({ mode, colors: getColors(mode, accentTone), preference, setPreference, accentTone, setAccentTone }),
+    [mode, accentTone, preference, setPreference, setAccentTone],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
