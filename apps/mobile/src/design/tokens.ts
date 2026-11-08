@@ -76,10 +76,39 @@ const darkColors = {
   success: '#16A34A',
 };
 
+export const accentTones = {
+  emerald: {
+    light: { accent: '#0E7A5A', accentFill: '#0E7A5A', success: '#0E7A5A' },
+    dark: { accent: '#22C55E', accentFill: '#0E7A5A', success: '#16A34A' },
+  },
+  blue: {
+    light: { accent: '#2563EB', accentFill: '#2563EB', success: '#2563EB' },
+    dark: { accent: '#60A5FA', accentFill: '#2563EB', success: '#3B82F6' },
+  },
+  purple: {
+    light: { accent: '#7C3AED', accentFill: '#7C3AED', success: '#7C3AED' },
+    dark: { accent: '#A78BFA', accentFill: '#7C3AED', success: '#8B5CF6' },
+  },
+  orange: {
+    light: { accent: '#C2410C', accentFill: '#C2410C', success: '#C2410C' },
+    dark: { accent: '#FB923C', accentFill: '#C2410C', success: '#F97316' },
+  },
+  coral: {
+    light: { accent: '#E11D48', accentFill: '#E11D48', success: '#E11D48' },
+    dark: { accent: '#FB7185', accentFill: '#E11D48', success: '#F43F5E' },
+  },
+} as const;
+
+export type AccentTone = keyof typeof accentTones;
+
 export const palettes = {
   light: lightColors,
   dark: darkColors,
 };
+
+export function getColors(mode: ThemeMode, accentTone: AccentTone = 'emerald') {
+  return { ...palettes[mode], ...accentTones[accentTone][mode] };
+}
 
 export type ColorToken = keyof typeof lightColors;
 export type ThemeMode = keyof typeof palettes;
