@@ -1,10 +1,12 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 
 import { getDb } from '../db/client';
 import { outbox, setEntry, workoutSession, type SetEntryRow, type WorkoutSessionRow } from '../db/schema';
 import { notifyLocalWrite } from '../sync/writeHook';
 import { generateId } from '../../platform/uuid';
 import { buildFinishSessionChange, buildStartSessionChange } from './workoutSessionLogic';
+import { calculateWorkoutStreak } from '../../domain/streak';
+import { getLocalDateString } from '../../platform/localDate';
 
 export function startSession(localDate: string, templateId: string | null): string {
   const db = getDb();
@@ -114,4 +116,21 @@ export function sessionCountForDate(localDate: string): number {
     .from(workoutSession)
     .where(and(eq(workoutSession.localDate, localDate), isNull(workoutSession.deletedAt)))
     .all().length;
+}
+
+/** Completed workout sessions only — an abandoned active session must not award streak credit. */
+export function listCompletedWorkoutDates(): string[] {
+  const db = getDb();
+  return (
+    db
+      .select({ localDate: workoutSession.localDate })
+      .from(workoutSession)
+      .where(and(isNull(workoutSession.deletedAt), isNotNull(workoutSession.endedAt)))
+      .all() as { localDate: string }[]
+  ).map((row) => row.localDate);
+}
+
+/** Current/longest streak and the last-week strip, with Sunday treated as a recovery day. */
+export function getWorkoutStreak() {
+  return calculateWorkoutStreak(listCompletedWorkoutDates(), getLocalDateString());
 }

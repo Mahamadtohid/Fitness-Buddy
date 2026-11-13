@@ -12,6 +12,7 @@ import { getProfile } from '../../src/data/repositories/profileRepository';
 import { retryNow, useSyncStatusStore } from '../../src/data/sync';
 import { getLocalDateString } from '../../src/platform/localDate';
 import { parseWeightInput, type Units } from '../../src/domain/units';
+import { getWorkoutStreak } from '../../src/data/repositories/workoutSessionRepository';
 
 /** Matches `Date.prototype.getDay()` convention used by scheduleRepository/train.tsx. */
 function weekdayOf(localDate: string): number {
@@ -75,6 +76,7 @@ export default function TodayScreen() {
   }
 
   const [summary, setSummary] = useState<TodaySummary>(() => getTodaySummary());
+  const [streak, setStreak] = useState(() => getWorkoutStreak());
   // Queried once per refresh (focus/after an action), not on every render — this used to be a
   // live DB query (`getSchedule()`) called directly in the render body, so it re-ran on every
   // keystroke in this screen's two text fields too.
@@ -86,6 +88,7 @@ export default function TodayScreen() {
 
   const refresh = useCallback(() => {
     setSummary(getTodaySummary());
+    setStreak(getWorkoutStreak());
     setScheduledTemplateId(scheduledTemplateIdFor(weekday));
     setUnits((getProfile()?.units as Units) ?? 'metric');
   }, [weekday]);
@@ -267,6 +270,18 @@ export default function TodayScreen() {
           </Typography>
         </Card>
 
+        <Card style={styles.streakCard}>
+          <View style={styles.row}>
+            <Ionicons name="flame-outline" size={20} color={colors.accent} />
+            <View style={styles.flexInput}>
+              <Typography variant="bodyStrong">{streak.currentStreak}-day workout streak</Typography>
+              <Typography variant="caption" color="secondary">Best: {streak.longestStreak} days · Sunday is rest</Typography>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </View>
+          <Button variant="secondary" label="View achievements" onPress={() => router.push('/achievements')} />
+        </Card>
+
         <Card style={styles.sectionCard}>
           <Typography variant="bodyStrong">Sync: {status}</Typography>
           {lastError ? (
@@ -294,6 +309,7 @@ const styles = StyleSheet.create({
   weekStripRow: { flexDirection: 'row', justifyContent: 'space-between' },
   weekStripDay: { alignItems: 'center', gap: 4 },
   workoutCard: { borderWidth: 1 },
+  streakCard: { gap: spacing.sm },
   workoutIconWrap: {
     width: 36,
     height: 36,
