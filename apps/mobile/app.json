@@ -48,6 +48,7 @@
     ],
     "extra": {
       "apiBaseUrl": "http://localhost:5000",
+      "googleWebClientId": "",
       "router": {
         "asyncRoutes": {
           "web": true

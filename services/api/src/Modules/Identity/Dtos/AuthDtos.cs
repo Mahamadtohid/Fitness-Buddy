@@ -13,3 +13,12 @@ public sealed record ForgotPasswordRequest(string Email);
 public sealed record ResetPasswordRequest(string Email, string Token, string NewPassword);
 
 public sealed record AuthResponse(string AccessToken, string RefreshToken, DateTimeOffset AccessTokenExpiresAt);
+
+public sealed record GoogleSignInRequest(string IdToken, string? InviteCode = null);
+
+public sealed record GoogleAuthResponse(
+    string AccessToken,
+    string RefreshToken,
+    DateTimeOffset AccessTokenExpiresAt,
+    string Email,
+    bool IsNewUser);

@@ -13,20 +13,13 @@ import {
   type TextFieldHandle,
 } from '../../src/design';
 import { AuthBrandHeader } from '../../src/features/account/components/AuthBrandHeader';
+import { signInWithGoogle } from '../../src/features/account/googleSignIn';
 import { useAuthStore } from '../../src/features/account/useAuthStore';
-
-/** Social providers from the UI mockup. The backend has no OAuth — it authenticates with email +
- * password + invite code only — so these are rendered in their designed place but disabled, rather
- * than as controls that look live and then fail (guidelines §6.2: don't add providers without
- * backend support). */
-const SOCIAL_PROVIDERS: { label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
-  { label: 'Continue with Google', icon: 'logo-google' },
-  { label: 'Continue with Apple', icon: 'logo-apple' },
-];
 
 export default function LogInScreen() {
   const { colors } = useTheme();
   const login = useAuthStore((s) => s.login);
+  const googleLogin = useAuthStore((s) => s.googleLogin);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +40,24 @@ export default function LogInScreen() {
       router.replace('/(tabs)');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid email or password');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onGoogleSubmit = async () => {
+    if (submitting) return;
+
+    setError(null);
+    setSubmitting(true);
+    try {
+      const google = await signInWithGoogle();
+      // Null means the user dismissed the Google picker — not an error to report back.
+      if (!google) return;
+      await googleLogin(google.idToken);
+      router.replace('/(tabs)');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed');
     } finally {
       setSubmitting(false);
     }
@@ -123,25 +134,23 @@ export default function LogInScreen() {
       </View>
 
       <View style={styles.social}>
-        {SOCIAL_PROVIDERS.map((provider) => (
-          <Pressable
-            key={provider.label}
-            disabled
-            accessibilityRole="button"
-            accessibilityState={{ disabled: true }}
-            accessibilityHint="Not available yet"
-            style={[styles.socialButton, { borderColor: colors.border }]}
-          >
-            <Ionicons name={provider.icon} size={18} color={String(colors.textSecondary)} />
-            <Typography variant="caption" color="secondary">
-              {provider.label}
-            </Typography>
-          </Pressable>
-        ))}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Continue with Google"
+          accessibilityState={{ disabled: submitting, busy: submitting }}
+          disabled={submitting}
+          onPress={() => void onGoogleSubmit()}
+          style={({ pressed }) => [
+            styles.socialButton,
+            { borderColor: colors.border, opacity: submitting ? 0.45 : pressed ? 0.85 : 1 },
+          ]}
+        >
+          <Ionicons name="logo-google" size={18} color={String(colors.textSecondary)} />
+          <Typography variant="caption" color="secondary">
+            Continue with Google
+          </Typography>
+        </Pressable>
       </View>
-      <Typography variant="caption" color="secondary" style={styles.socialNote}>
-        Social sign-in is coming soon.
-      </Typography>
 
       <View style={styles.footerRow}>
         <Typography variant="body" color="secondary">
@@ -193,10 +202,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     minHeight: 48,
-    opacity: 0.55,
-  },
-  socialNote: {
-    textAlign: 'center',
   },
   footerRow: {
     flexDirection: 'row',

@@ -17,6 +17,7 @@ type AuthState = {
   /** Loads a persisted session on app start; call once from the root layout. */
   bootstrap: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  googleLogin: (idToken: string, inviteCode?: string) => Promise<boolean>;
   registerAndLogin: (email: string, password: string, inviteCode: string, fullName?: string) => Promise<void>;
   logout: () => Promise<void>;
   /** Used by the sync engine on a 401; returns false (and logs out) if the refresh token is dead. */
@@ -75,6 +76,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await setSecureItem(REFRESH_TOKEN_KEY, auth.refreshToken);
     await setSecureItem(USER_EMAIL_KEY, email);
     applySession(set, auth, email);
+  },
+
+  googleLogin: async (idToken, inviteCode) => {
+    const auth = await client.googleSignIn(idToken, inviteCode);
+    await setSecureItem(REFRESH_TOKEN_KEY, auth.refreshToken);
+    await setSecureItem(USER_EMAIL_KEY, auth.email);
+    applySession(set, auth, auth.email);
+    return auth.isNewUser;
   },
 
   registerAndLogin: async (email, password, inviteCode, fullName) => {

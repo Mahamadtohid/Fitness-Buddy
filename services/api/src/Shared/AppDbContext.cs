@@ -58,6 +58,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
             e.HasIndex(i => i.Code).IsUnique();
         });
 
+        builder.Entity<ApplicationUser>(e =>
+        {
+            e.Property(u => u.GoogleSubject).HasMaxLength(255);
+            e.HasIndex(u => u.GoogleSubject)
+                .IsUnique()
+                .HasFilter("\"GoogleSubject\" IS NOT NULL");
+        });
+
         builder.Entity<WeightEntry>(e =>
         {
             e.HasIndex(w => new { w.UserId, w.LocalDate })

@@ -8,5 +8,9 @@ public class ApplicationUser : IdentityUser<Guid>
     /// field existed have none, and nothing in the app requires it to be set.</summary>
     public string? FullName { get; set; }
 
+    /// <summary>Stable Google OpenID Connect subject. The email is not used as the provider
+    /// identifier because Google accounts can change email addresses.</summary>
+    public string? GoogleSubject { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
