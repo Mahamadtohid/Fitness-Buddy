@@ -1,0 +1,16 @@
+name: Create Production Builds
+
+jobs:
+  build_android:
+    name: Build Android app
+    type: build
+    params:
+      platform: android
+      profile: production
+  # iOS job: add once ios.bundleIdentifier is set and Apple credentials are configured in EAS.
+  # build_ios:
+  #   name: Build iOS app
+  #   type: build
+  #   params:
+  #     platform: ios
+  #     profile: production

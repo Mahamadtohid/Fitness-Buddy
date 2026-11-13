@@ -1,3 +1,4 @@
+import { router, useFocusEffect } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { FlatList, Image, Platform, StyleSheet, View } from 'react-native';
@@ -14,6 +15,7 @@ import { logMeasurement, listByType } from '../../src/data/repositories/measurem
 import type { MeasurementType } from '../../src/data/repositories/measurementLogic';
 import { savePhoto, listPhotos, type Pose } from '../../src/data/repositories/photoRepository';
 import { getWeeklyProgressStats, type WeeklyProgressStats } from '../../src/data/repositories/progressStats';
+import { getWorkoutStreak } from '../../src/data/repositories/workoutSessionRepository';
 import { getProfile } from '../../src/data/repositories/profileRepository';
 import { kgToLb, formatLength, formatWeight, parseLengthInput, parseWeightInput, type Units } from '../../src/domain/units';
 
@@ -314,13 +316,17 @@ export default function ProgressScreen() {
   // actions (logging a weigh-in, syncing) — this screen has no focus-effect refresh today, so
   // matching that existing convention rather than introducing a new one for just this.
   const [weeklyStats, setWeeklyStats] = useState<WeeklyProgressStats>(() => getWeeklyProgressStats());
+  const [streak, setStreak] = useState(() => getWorkoutStreak());
   const [units, setUnits] = useState<Units>(() => (getProfile()?.units as Units) ?? 'metric');
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     setEntries(listWeightEntries());
     setWeeklyStats(getWeeklyProgressStats());
+    setStreak(getWorkoutStreak());
     setUnits((getProfile()?.units as Units) ?? 'metric');
-  };
+  }, []);
+
+  useFocusEffect(refresh);
 
   const onSyncNow = () => {
     retryNow();
@@ -442,6 +448,46 @@ export default function ProgressScreen() {
           </Card>
 
           <Card style={styles.sectionCard}>
+            <View style={styles.headerRow}>
+              <View style={styles.streakTitleRow}>
+                <Ionicons name="flame-outline" size={20} color={colors.accent} />
+                <Typography variant="title">Workout streak</Typography>
+              </View>
+              <Typography variant="caption" color="accent">Best {streak.longestStreak}</Typography>
+            </View>
+            <View style={styles.streakStats}>
+              <View>
+                <Typography variant="statLarge">{streak.currentStreak}</Typography>
+                <Typography variant="caption" color="secondary">current days</Typography>
+              </View>
+              <View>
+                <Typography variant="statLarge">{streak.totalWorkouts}</Typography>
+                <Typography variant="caption" color="secondary">completed workouts</Typography>
+              </View>
+            </View>
+            <View style={styles.streakWeek}>
+              {streak.lastSevenDays.map((day) => {
+                const weekday = new Date(`${day.localDate}T00:00:00Z`).getUTCDay();
+                const completed = day.status === 'completed';
+                const rest = day.status === 'rest';
+                const missed = day.status === 'missed';
+                return (
+                  <View key={day.localDate} style={styles.streakDay}>
+                    <Typography variant="caption" color="secondary">{['S', 'M', 'T', 'W', 'T', 'F', 'S'][weekday]}</Typography>
+                    <Ionicons
+                      name={rest ? 'moon-outline' : completed ? 'checkmark-circle' : missed ? 'close-circle-outline' : 'ellipse-outline'}
+                      size={20}
+                      color={rest ? colors.textSecondary : completed ? colors.accent : missed ? colors.danger : colors.border}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+            <Typography variant="caption" color="secondary">Sunday is your recovery day and never breaks the streak.</Typography>
+            <Button variant="secondary" label="View achievements" onPress={() => router.push('/achievements')} />
+          </Card>
+
+          <Card style={styles.sectionCard}>
             <Typography variant="title">Nutrition trends</Typography>
             <Typography variant="caption" color="secondary">
               7-day average
@@ -557,6 +603,23 @@ const styles = StyleSheet.create({
   statCell: {
     alignItems: 'center',
     gap: 2,
+  },
+  streakTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  streakStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  streakWeek: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  streakDay: {
+    alignItems: 'center',
+    gap: 4,
   },
   trendsRow: {
     flexDirection: 'row',

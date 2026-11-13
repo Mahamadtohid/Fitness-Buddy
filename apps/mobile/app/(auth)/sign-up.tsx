@@ -13,6 +13,7 @@ import {
   type TextFieldHandle,
 } from '../../src/design';
 import { AuthBrandHeader } from '../../src/features/account/components/AuthBrandHeader';
+import { signInWithGoogle } from '../../src/features/account/googleSignIn';
 import { useAuthStore } from '../../src/features/account/useAuthStore';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -20,6 +21,7 @@ const MIN_PASSWORD_LENGTH = 8;
 export default function SignUpScreen() {
   const { colors } = useTheme();
   const registerAndLogin = useAuthStore((s) => s.registerAndLogin);
+  const googleLogin = useAuthStore((s) => s.googleLogin);
   const [fullName, setFullName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [email, setEmail] = useState('');
@@ -28,6 +30,7 @@ export default function SignUpScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
   const inviteRef = useRef<TextFieldHandle>(null);
   const emailRef = useRef<TextFieldHandle>(null);
@@ -66,6 +69,32 @@ export default function SignUpScreen() {
       setError(err instanceof Error ? err.message : 'Could not create account');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const onGoogleSubmit = async () => {
+    if (submitting || googleSubmitting) return;
+    if (!inviteCode.trim()) {
+      setError('An invite code is required to create an account with Google.');
+      return;
+    }
+    if (!acceptedTerms) {
+      setError('Please accept the Terms of Service and Privacy Policy.');
+      return;
+    }
+
+    setError(null);
+    setGoogleSubmitting(true);
+    try {
+      const google = await signInWithGoogle();
+      // Null means the user dismissed the Google picker — not an error to report back.
+      if (!google) return;
+      const isNewUser = await googleLogin(google.idToken, inviteCode.trim());
+      router.replace(isNewUser ? '/(auth)/consent' : '/(tabs)');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-up failed');
+    } finally {
+      setGoogleSubmitting(false);
     }
   };
 
@@ -172,7 +201,19 @@ export default function SignUpScreen() {
           </Typography>
         ) : null}
 
-        <Button label="Create Account" onPress={onSubmit} loading={submitting} />
+        <Button
+          label="Create Account"
+          onPress={onSubmit}
+          loading={submitting}
+          disabled={googleSubmitting}
+        />
+        <Button
+          label="Continue with Google"
+          variant="secondary"
+          onPress={() => void onGoogleSubmit()}
+          loading={googleSubmitting}
+          disabled={submitting}
+        />
       </View>
 
       <View style={styles.footerRow}>

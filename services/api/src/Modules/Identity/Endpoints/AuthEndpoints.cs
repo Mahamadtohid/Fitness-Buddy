@@ -1,12 +1,15 @@
 using FitnessCompanion.Api.Modules.Identity.Dtos;
 using FitnessCompanion.Api.Modules.Identity.Entities;
+using FitnessCompanion.Api.Modules.Identity.Options;
 using FitnessCompanion.Api.Modules.Identity.Services;
 using FitnessCompanion.Api.Shared;
 using FluentValidation;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FitnessCompanion.Api.Modules.Identity.Endpoints;
 
@@ -18,6 +21,7 @@ public static class AuthEndpoints
 
         group.MapPost("/register", Register);
         group.MapPost("/login", Login);
+        group.MapPost("/google", GoogleSignIn);
         group.MapPost("/refresh", Refresh);
         group.MapPost("/logout", Logout);
         group.MapPost("/forgot-password", ForgotPassword);
@@ -107,6 +111,120 @@ public static class AuthEndpoints
 
         var response = await IssueTokenPairAsync(user, tokenService, db, Guid.NewGuid(), http, ct);
         return Results.Ok(response);
+    }
+
+    private static async Task<IResult> GoogleSignIn(
+        GoogleSignInRequest request,
+        IOptions<GoogleOptions> googleOptions,
+        UserManager<ApplicationUser> userManager,
+        AppDbContext db,
+        ITokenService tokenService,
+        HttpContext http,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(googleOptions.Value.WebClientId))
+        {
+            return Results.Problem(
+                title: "Google sign-in is not configured.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(
+                request.IdToken,
+                new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = [googleOptions.Value.WebClientId],
+                });
+        }
+        catch (InvalidJwtException)
+        {
+            return Results.Problem(title: "Invalid Google sign-in token.", statusCode: StatusCodes.Status401Unauthorized);
+        }
+        catch (ArgumentException)
+        {
+            return Results.Problem(title: "Invalid Google sign-in token.", statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        if (!payload.EmailVerified || string.IsNullOrWhiteSpace(payload.Email) || string.IsNullOrWhiteSpace(payload.Subject))
+        {
+            return Results.Problem(
+                title: "Google account email is not verified.",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        var user = await db.Users.SingleOrDefaultAsync(u => u.GoogleSubject == payload.Subject, ct);
+        var isNewUser = false;
+
+        if (user is null)
+        {
+            user = await userManager.FindByEmailAsync(payload.Email);
+            if (user is not null)
+            {
+                // Do not silently link a Google identity to a password account based only on an
+                // email address. Linking must be an explicit authenticated action in a future flow.
+                return Results.Conflict(new
+                {
+                    code = "google_link_required",
+                    title = "This email already has a password account. Sign in with your password before linking Google.",
+                });
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            if (string.IsNullOrWhiteSpace(request.InviteCode))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["InviteCode"] = ["An invite code is required to create a new account."],
+                });
+            }
+
+            var invite = await db.InviteCodes.AsNoTracking().SingleOrDefaultAsync(i => i.Code == request.InviteCode, ct);
+            if (invite is null || !invite.IsUsable(now))
+            {
+                return Results.Problem(title: "Invalid or expired invite code.", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            user = new ApplicationUser
+            {
+                UserName = payload.Email,
+                Email = payload.Email,
+                EmailConfirmed = true,
+                FullName = string.IsNullOrWhiteSpace(payload.Name) ? null : payload.Name,
+                GoogleSubject = payload.Subject,
+            };
+
+            var createResult = await userManager.CreateAsync(user);
+            if (!createResult.Succeeded)
+            {
+                return Results.ValidationProblem(
+                    createResult.Errors.ToDictionary(e => e.Code, e => new[] { e.Description }));
+            }
+
+            var claimed = await db.InviteCodes
+                .Where(i => i.Code == request.InviteCode && i.UsedBy == null && i.ExpiresAt > now)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(i => i.UsedBy, user.Id)
+                    .SetProperty(i => i.UsedAt, now), ct);
+
+            if (claimed == 0)
+            {
+                await userManager.DeleteAsync(user);
+                return Results.Problem(title: "Invalid or expired invite code.", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            isNewUser = true;
+        }
+
+        var response = await IssueTokenPairAsync(user, tokenService, db, Guid.NewGuid(), http, ct);
+        return Results.Ok(new GoogleAuthResponse(
+            response.AccessToken,
+            response.RefreshToken,
+            response.AccessTokenExpiresAt,
+            user.Email!,
+            isNewUser));
     }
 
     private static async Task<IResult> Refresh(

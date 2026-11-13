@@ -92,6 +92,7 @@ function RootNavigator() {
         <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
         <Stack.Screen name="fitness-preferences" options={{ headerShown: false }} />
         <Stack.Screen name="appearance" options={{ headerShown: false }} />
+        <Stack.Screen name="achievements" options={{ headerShown: false }} />
       </Stack>
       {status === 'authenticated' ? <AppLockGate /> : null}
     </>

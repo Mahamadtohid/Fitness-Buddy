@@ -19,6 +19,11 @@ export type AuthResponse = {
   accessTokenExpiresAt: string;
 };
 
+export type GoogleAuthResponse = AuthResponse & {
+  email: string;
+  isNewUser: boolean;
+};
+
 export type WeightEntryPayload = {
   localDate: string;
   weightKg: number;
@@ -115,6 +120,12 @@ export const client = {
     request<AuthResponse>('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+    }),
+
+  googleSignIn: (idToken: string, inviteCode?: string) =>
+    request<GoogleAuthResponse>('/api/v1/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ idToken, inviteCode }),
     }),
 
   refresh: (refreshToken: string) =>
